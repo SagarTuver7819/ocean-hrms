@@ -140,10 +140,11 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
       <button type="button" class="cr-btn cr-btn-ghost w-100" id="crAddEdu"><i class="fa-solid fa-plus me-1"></i> Add Qualification</button>
     </section>
 
-    <!-- Step 4: Experience -->
-    <section class="cr-card cr-step d-none" data-step="4" data-title="Experience & CTC">
-      <h2><i class="fa-solid fa-building"></i> Experience &amp; CTC</h2>
-      <label class="cr-switch mb-3">
+    <!-- Step 4: Experience (hidden for Internship) -->
+    <section class="cr-card cr-step d-none" data-step="4" data-title="Experience & CTC" id="crStepExp">
+      <h2 id="crStepExpTitle"><i class="fa-solid fa-building"></i> Experience &amp; CTC</h2>
+      <p class="cr-hint d-none" id="crInternNote">Internship selected — work experience is not required. Add expected stipend if any.</p>
+      <label class="cr-switch mb-3" id="crFresherWrap">
         <input type="checkbox" name="is_fresher" value="1" id="crFresher">
         <span>I am a fresher (no work experience)</span>
       </label>
@@ -157,7 +158,7 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
 
       <div class="row g-3 mt-1">
         <div class="col-6" id="crCurCtcWrap"><label class="form-label">Current CTC (₹ / year)</label><input class="form-control" type="number" name="current_ctc" min="0" step="1000" inputmode="numeric" placeholder="e.g. 360000"></div>
-        <div class="col-6"><label class="form-label req">Expected CTC (₹ / year)</label><input class="form-control" type="number" name="expected_ctc" min="0" step="1000" inputmode="numeric" required placeholder="e.g. 480000"></div>
+        <div class="col-6"><label class="form-label req" id="crExpCtcLabel">Expected CTC (₹ / year)</label><input class="form-control" type="number" name="expected_ctc" min="0" step="1000" inputmode="numeric" required placeholder="e.g. 480000" id="crExpCtc"></div>
         <div class="col-6">
           <label class="form-label">Notice Period</label>
           <select class="form-select" name="notice_period">

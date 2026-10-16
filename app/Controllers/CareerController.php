@@ -89,7 +89,10 @@ class CareerController extends Controller
         $designationId = $des ? (int) $des['id'] : null;
         $departmentId = $des['department_id'] ?? null;
 
-        $isFresher = !empty($_POST['is_fresher']) ? 1 : 0;
+        $employmentType = in_array($_POST['employment_type'] ?? '', ['full_time', 'intern', 'part_time'], true)
+            ? $_POST['employment_type'] : 'full_time';
+        // Internship applicants do not submit work experience
+        $isFresher = (!empty($_POST['is_fresher']) || $employmentType === 'intern') ? 1 : 0;
         $experience = [];
         $totalMonths = 0;
         if (!$isFresher) {
@@ -127,7 +130,7 @@ class CareerController extends Controller
                 'department_id'           => $departmentId,
                 'designation_id'          => $designationId,
                 'position_other'          => $position,
-                'employment_type'         => in_array($_POST['employment_type'] ?? '', ['full_time','intern','part_time'], true) ? $_POST['employment_type'] : 'full_time',
+                'employment_type'         => $employmentType,
                 'source'                  => $source,
                 'referred_by'             => $nullable('referred_by', 120),
                 'first_name'              => $data['first_name'],
@@ -147,7 +150,7 @@ class CareerController extends Controller
                 'pan_number'              => ($p = $nullable('pan_number', 20)) ? strtoupper($p) : null,
                 'is_fresher'              => $isFresher,
                 'total_experience_months' => $totalMonths,
-                'current_ctc'             => is_numeric($_POST['current_ctc'] ?? null) ? (float) $_POST['current_ctc'] : null,
+                'current_ctc'             => ($employmentType !== 'intern' && is_numeric($_POST['current_ctc'] ?? null)) ? (float) $_POST['current_ctc'] : null,
                 'expected_ctc'            => is_numeric($_POST['expected_ctc'] ?? null) ? (float) $_POST['expected_ctc'] : null,
                 'notice_period'           => in_array($_POST['notice_period'] ?? '', Candidate::NOTICE_PERIODS, true) ? $_POST['notice_period'] : null,
                 'current_location'        => $nullable('current_location', 120),

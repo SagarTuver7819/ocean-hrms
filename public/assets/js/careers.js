@@ -137,6 +137,43 @@
   });
   addRow('tplExp', 'crExpList');
 
+  /* Internship → hide experience details (QR form unchanged) */
+  function isIntern() {
+    const el = form.elements.employment_type;
+    if (!el) return false;
+    const checked = el instanceof RadioNodeList
+      ? Array.from(el).find(r => r.checked)
+      : (el.checked ? el : null);
+    return checked && checked.value === 'intern';
+  }
+  function syncInternMode() {
+    const intern = isIntern();
+    const step = $('#crStepExp');
+    if (step) {
+      step.dataset.title = intern ? 'Stipend & Availability' : 'Experience & CTC';
+      if (current === 4) $('#crStepTitle').textContent = step.dataset.title;
+    }
+    const title = $('#crStepExpTitle');
+    if (title) title.innerHTML = intern
+      ? '<i class="fa-solid fa-building"></i> Stipend &amp; Availability'
+      : '<i class="fa-solid fa-building"></i> Experience &amp; CTC';
+    $('#crInternNote').classList.toggle('d-none', !intern);
+    $('#crFresherWrap').classList.toggle('d-none', intern);
+    if (intern) {
+      fresher.checked = true;
+      fresher.dispatchEvent(new Event('change'));
+      const cur = form.elements.current_ctc;
+      if (cur) cur.value = '';
+      $('#crExpCtcLabel').textContent = 'Expected stipend (₹ / year)';
+      $('#crExpCtc').placeholder = 'e.g. 60000';
+    } else {
+      $('#crExpCtcLabel').textContent = 'Expected CTC (₹ / year)';
+      $('#crExpCtc').placeholder = 'e.g. 480000';
+    }
+  }
+  $$('input[name="employment_type"]').forEach(r => r.addEventListener('change', syncInternMode));
+  syncInternMode();
+
   /* ---------- Step 5: skill hints ---------- */
   const skills = $('#crSkills');
   $$('#crSkillHints .cr-tag').forEach(tag => tag.addEventListener('click', () => {
@@ -186,11 +223,13 @@
   function buildReview() {
     const pos = desig.value === '__other' ? val('position_other') : val('position');
     const name = [val('first_name'), val('middle_name'), val('last_name')].filter(Boolean).join(' ');
-    const exp = fresher.checked ? 'Fresher' : $('#crTotalExp').textContent;
+    const intern = isIntern();
+    const exp = intern || fresher.checked ? (intern ? 'Internship (no experience)' : 'Fresher') : $('#crTotalExp').textContent;
+    const ctcLabel = intern ? 'Expected stipend' : 'Expected CTC';
     const rows = [
       ['Position', pos], ['Type', val('employment_type')],
       ['Name', name], ['Mobile', val('mobile')], ['Parents Contact', val('parent_mobile')], ['Email', val('email')],
-      ['Experience', exp], ['Expected CTC', val('expected_ctc') ? '₹ ' + Number(val('expected_ctc')).toLocaleString('en-IN') + ' / year' : '—'],
+      ['Experience', exp], [ctcLabel, val('expected_ctc') ? '₹ ' + Number(val('expected_ctc')).toLocaleString('en-IN') + ' / year' : '—'],
       ['Primary skills', val('primary_skills')],
     ];
     $('#crReview').innerHTML = rows.map(r =>
