@@ -104,9 +104,18 @@ class Employee extends Model
     public function nextCode(): string
     {
         $year = date('Y');
-        $stmt = $this->db()->query("SELECT COUNT(*) + 1 FROM employees");
-        $n = (int) $stmt->fetchColumn();
-        return 'OI' . $year . str_pad((string) $n, 4, '0', STR_PAD_LEFT);
+        $prefix = 'OI' . $year;
+        // Use highest existing code for this year (safe after deletes / soft-exits)
+        $stmt = $this->db()->prepare(
+            "SELECT employee_code FROM employees WHERE employee_code LIKE ? ORDER BY employee_code DESC LIMIT 1"
+        );
+        $stmt->execute([$prefix . '%']);
+        $last = (string) ($stmt->fetchColumn() ?: '');
+        $n = 1;
+        if ($last !== '' && preg_match('/^OI' . $year . '(\d+)$/', $last, $m)) {
+            $n = (int) $m[1] + 1;
+        }
+        return $prefix . str_pad((string) $n, 4, '0', STR_PAD_LEFT);
     }
 
     public function addTimeline(int $employeeId, string $title, ?string $description = null, ?string $eventDate = null): void

@@ -9,7 +9,7 @@ use App\Models\Employee;
 
 /**
  * Time-limited employee self-fill campaign (QR / WhatsApp).
- * Auto employee code (read-only) · submit creates / updates employee (no salary).
+ * Always ADD NEW employee (like Add Employee) · auto code · never edits existing · no salary.
  */
 class EmployeeSelfFillController extends Controller
 {
@@ -57,7 +57,7 @@ class EmployeeSelfFillController extends Controller
             'fillUrl' => $fillUrl,
             'isLocal' => $fillUrl ? (bool) preg_match('#^https?://(localhost|127\.0\.0\.1)#', $fillUrl) : false,
             'waText'  => $fillUrl
-                ? "Namaste,\n\nPlease fill your employee details using this link (valid for limited time).\nEmployee code will be auto-generated.\n{$fillUrl}\n\n— Ocean Infotech HR"
+                ? "Namaste,\n\nPlease register as a NEW employee using this link (limited time).\nA new employee code will be auto-generated.\n{$fillUrl}\n\n— Ocean Infotech HR"
                 : '',
         ]);
     }
@@ -210,21 +210,26 @@ class EmployeeSelfFillController extends Controller
             $this->json(['ok' => false, 'message' => implode(' ', $errors)], 422);
         }
 
-        // Always generate on server (never trust editable client code)
-        $code = $this->employees->nextCode();
-
+        // Self-fill = ADD NEW employee only (never edit existing)
         $dup = $this->db()->prepare(
-            "SELECT id, employee_code FROM employees
+            "SELECT employee_code FROM employees
              WHERE REPLACE(REPLACE(REPLACE(IFNULL(mobile,''),' ',''),'-',''),'+','') LIKE ?
                AND status NOT IN ('inactive','resigned')
              LIMIT 1"
         );
         $dup->execute(['%' . $mobile]);
-        $existing = $dup->fetch();
+        if ($dupCode = $dup->fetchColumn()) {
+            $this->json([
+                'ok' => false,
+                'message' => 'This mobile is already registered (' . $dupCode . '). Self-fill only adds NEW employees. Contact HR to edit an existing profile.',
+            ], 422);
+        }
 
         $same = !empty($_POST['same_as_current']) ? 1 : 0;
         $off = strtolower($s('official_email', 150));
+        $code = $this->employees->nextCode();
         $data = [
+            'employee_code' => $code,
             'first_name' => $first,
             'middle_name' => $nullable('middle_name', 80),
             'last_name' => $last,
@@ -248,11 +253,11 @@ class EmployeeSelfFillController extends Controller
             'designation_id' => $designationId > 0 ? $designationId : null,
             'employment_type' => $employmentType !== '' ? $employmentType : 'full_time',
             'work_location' => $nullable('work_location', 120),
+            'joining_date' => $joiningDate !== '' ? $joiningDate : date('Y-m-d'),
+            'status' => 'onboarding',
+            'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ];
-        if ($joiningDate !== '') {
-            $data['joining_date'] = $joiningDate;
-        }
         if ($same) {
             $data['permanent_address'] = $data['current_address'];
             $data['permanent_city'] = $data['current_city'];
@@ -268,23 +273,24 @@ class EmployeeSelfFillController extends Controller
         }
 
         $db = $this->db();
-        if ($existing) {
-            $empId = (int) $existing['id'];
-            $code = (string) $existing['employee_code'];
-            $this->employees->update($empId, $data);
-            $this->employees->addTimeline($empId, 'Profile self-filled', 'Updated via QR self-fill form');
-            $msg = 'Thank you! Your details are updated in Ocean HRMS.';
-        } else {
-            $data['employee_code'] = $code;
-            $data['status'] = 'onboarding';
-            if (empty($data['joining_date'])) {
-                $data['joining_date'] = date('Y-m-d');
-            }
-            $data['created_at'] = date('Y-m-d H:i:s');
+        try {
             $empId = $this->employees->create($data);
-            $this->employees->addTimeline($empId, 'Employee joined', $first . ' ' . $last . ' added via QR self-fill', date('Y-m-d'));
-            $msg = 'Thank you! Your profile is created in Ocean HRMS.';
+        } catch (\Throwable $e) {
+            // Race on employee_code — retry once with fresh code
+            $data['employee_code'] = $this->employees->nextCode();
+            $code = $data['employee_code'];
+            $empId = $this->employees->create($data);
         }
+        $this->employees->addTimeline($empId, 'Employee joined', $first . ' ' . $last . ' added via self-fill QR (new employee)', $data['joining_date']);
+        activity_log('employee', 'created', $empId, null, $data);
+
+        try {
+            \App\Services\EmployeeLogin::issue($empId);
+        } catch (\Throwable $e) {
+            // Login optional for self-fill; HR can issue later
+        }
+
+        $msg = 'Thank you! New employee profile created in Ocean HRMS.';
 
         $bank = [
             $nullable('bank_name', 120),

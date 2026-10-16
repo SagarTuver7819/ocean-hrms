@@ -4,7 +4,7 @@ $company = setting('company_name', $app['company']);
 <div class="page-head">
   <div>
     <h1>Employee Self-Fill QR</h1>
-    <p>Time-limited link · employees fill personal / bank / KYC / emergency (no salary) · saves into Employee master</p>
+    <p>Time-limited link · NEW employee registration (auto code) · salary not included · never edits existing staff</p>
   </div>
   <div class="d-flex gap-2">
     <a href="<?= url('employees') ?>" class="btn btn-sm btn-outline-ink"><i class="fa-solid fa-arrow-left me-1"></i>Employees</a>
@@ -103,7 +103,7 @@ $company = setting('company_name', $app['company']);
           <div class="input-group mb-2">
             <input type="text" class="form-control" id="sfUrl" readonly value="<?= e($fillUrl) ?>">
           </div>
-          <p class="small text-muted mb-0">Employee opens link → <b>Employee Code auto-generated (read-only)</b> → fills Personal, Designation, Address, Bank, KYC, Emergency → saved in HRMS (<b>salary not included</b>). Same mobile updates existing record.</p>
+          <p class="small text-muted mb-0">Employee opens link → <b>new Employee Code auto-generated</b> → fills form → <b>NEW employee added</b> in HRMS (same as Add Employee · salary not included). Existing employees are never edited from this form.</p>
         </div>
       </div>
 
