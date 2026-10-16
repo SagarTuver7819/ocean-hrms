@@ -5,9 +5,13 @@ $present = rtrim(rtrim(number_format($monthStats['present'], 1), '0'), '.');
 <div class="hero-card">
   <div class="hero-id">
     <?php if (!empty($employee['profile_photo'])): ?>
-      <a href="<?= url('employee/profile') ?>" class="hero-logo has-photo" title="My Profile"><img src="<?= asset($employee['profile_photo']) ?>" alt=""></a>
+      <button type="button" class="hero-logo has-photo js-photo-view" title="View photo"
+        data-photo="<?= e(asset($employee['profile_photo'])) ?>"
+        data-name="<?= e(trim(($employee['first_name'] ?? '') . ' ' . ($employee['last_name'] ?? ''))) ?>">
+        <img src="<?= asset($employee['profile_photo']) ?>" alt="">
+      </button>
     <?php else: ?>
-      <div class="hero-logo"><img src="<?= asset($app['brand']['logo']) ?>" alt="Ocean Infotech"></div>
+      <a href="<?= url('employee/profile') ?>" class="hero-logo" title="My Profile"><img src="<?= asset($app['brand']['logo']) ?>" alt="Ocean Infotech"></a>
     <?php endif; ?>
     <div>
       <h1><?= greeting() ?>, <span class="hl"><?= e(($employee['first_name'] ?? $authUser['name']) . ' ' . ($employee['last_name'] ?? '')) ?></span></h1>

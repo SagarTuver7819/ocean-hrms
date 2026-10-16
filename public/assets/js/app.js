@@ -418,4 +418,28 @@ $(function () {
     const txt = $btn.find('.btn-submit-text');
     if (txt.length) txt.text('Please wait…');
   });
+
+  /* Profile photo full view */
+  window.OceanPhotoView = function (src, name) {
+    if (!src) return;
+    let box = document.getElementById('photoLightbox');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'photoLightbox';
+      box.className = 'photo-lightbox';
+      box.innerHTML = '<button type="button" class="pl-close" aria-label="Close">&times;</button><img alt=""><div class="pl-cap"></div>';
+      document.body.appendChild(box);
+      box.addEventListener('click', function (e) {
+        if (e.target === box || e.target.classList.contains('pl-close')) box.classList.remove('open');
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') box.classList.remove('open'); });
+    }
+    box.querySelector('img').src = src;
+    box.querySelector('.pl-cap').textContent = name || '';
+    box.classList.add('open');
+  };
+  $(document).on('click', '.js-photo-view', function (e) {
+    e.preventDefault();
+    window.OceanPhotoView(this.dataset.photo, this.dataset.name);
+  });
 });

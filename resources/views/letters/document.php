@@ -118,7 +118,7 @@ $subjects = [
         <div class="lt-accept">
           <h5>Acceptance</h5>
           I, <b><?= e($p['name']) ?></b>, have read and understood the terms of this offer and accept the position of
-          <b><?= e($p['designation']) ?></b> at a fixed monthly salary of <b><?= $rupee($monthlySalary) ?></b>. I will join on <b><?= $d($joiningDate) ?></b>.
+          <b><?= e($p['designation'] ?: '—') ?></b><?php $payAcc = (float) ($monthlySalary ?? 0); ?> at a fixed monthly salary of <b><?= $payAcc > 0 ? $rupee($payAcc) : 'as agreed' ?></b>. I will join on <b><?= $d($joiningDate) ?></b>.
           <div class="row"><div>Candidate Signature</div><div>Date</div><div>Place</div></div>
         </div>
       <?php endif; ?>

@@ -24,15 +24,39 @@ $itDepartments = [
 ];
 
 $itDesignations = [
+    // Software Development — Fresher + Jr / Mid / Sr
+    ['Fresher', 'Software Development'],
+    ['Junior Software Engineer', 'Software Development'],
     ['Software Engineer', 'Software Development'],
     ['Senior Software Engineer', 'Software Development'],
+    ['Junior Web Developer', 'Software Development'],
+    ['Web Developer', 'Software Development'],
+    ['Senior Web Developer', 'Software Development'],
     ['Team Lead', 'Software Development'],
-    ['Project Manager', 'Project Management'],
+    // QA
+    ['Junior QA Engineer', 'Quality Assurance'],
     ['QA Engineer', 'Quality Assurance'],
+    ['Senior QA Engineer', 'Quality Assurance'],
+    // UI / UX
+    ['Junior UI/UX Designer', 'UI / UX Design'],
     ['UI/UX Designer', 'UI / UX Design'],
+    ['Senior UI/UX Designer', 'UI / UX Design'],
+    ['Junior Web Designer', 'UI / UX Design'],
+    ['Web Designer', 'UI / UX Design'],
+    ['Senior Web Designer', 'UI / UX Design'],
+    ['Designing', 'UI / UX Design'],
+    // Other
+    ['Junior DevOps Engineer', 'DevOps & Infrastructure'],
     ['DevOps Engineer', 'DevOps & Infrastructure'],
+    ['Senior DevOps Engineer', 'DevOps & Infrastructure'],
+    ['Project Manager', 'Project Management'],
+    ['Junior HR Executive', 'Human Resources'],
     ['HR Executive', 'Human Resources'],
     ['HR Head', 'Human Resources'],
+    ['Receptionist', 'Human Resources'],
+    ['Junior Sales Executive', 'Business Development'],
+    ['Sales Executive', 'Business Development'],
+    ['Senior Sales Executive', 'Business Development'],
     ['Business Analyst', 'Business Development'],
     ['IT Support Executive', 'IT Support'],
 ];

@@ -15,6 +15,7 @@ use App\Services\Salary;
 class LetterController extends Controller
 {
     public const TYPES = [
+        'employment'  => ['Employment Details Form', 'EMPFORM'],
         'offer'       => ['Offer Letter', 'OFFER'],
         'appointment' => ['Appointment / Joining Letter', 'APPOINT'],
         'experience'  => ['Experience Letter', 'EXP'],
@@ -37,6 +38,16 @@ class LetterController extends Controller
         }
 
         $salary = Salary::current((int) $id);
+
+        if ($type === 'employment') {
+            $this->view('letters/employment-form', [
+                'employee'   => $e,
+                'salary'     => $salary,
+                'letterhead' => Letterhead::config(),
+                'backUrl'    => url('employees/' . (int) $id),
+            ], null);
+            return;
+        }
 
         $letterDate = $this->dateParam('date') ?? date('Y-m-d');
         $lastDay = $this->dateParam('last_day');

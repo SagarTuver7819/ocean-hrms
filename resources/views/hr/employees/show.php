@@ -12,6 +12,8 @@ ob_start(); ?>
   <div class="dropdown">
     <button type="button" class="btn btn-soft btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i class="fa-solid fa-envelope-open-text me-1"></i>Letters</button>
     <ul class="dropdown-menu dropdown-menu-end letter-menu">
+      <li><a class="dropdown-item" target="_blank" href="<?= $letterUrl('employment') ?>"><span class="lm-ico t-violet"><i class="fa-solid fa-id-card"></i></span><div><b>Employment Details Form</b><small>Full profile · print / PDF</small></div></a></li>
+      <li><hr class="dropdown-divider"></li>
       <li><a class="dropdown-item" target="_blank" href="<?= $letterUrl('offer') ?>"><span class="lm-ico t-green"><i class="fa-solid fa-file-signature"></i></span><div><b>Offer Letter</b><small>Monthly salary &amp; joining terms</small></div></a></li>
       <li><a class="dropdown-item" target="_blank" href="<?= $letterUrl('appointment') ?>"><span class="lm-ico t-orange"><i class="fa-solid fa-file-contract"></i></span><div><b>Appointment / Joining Letter</b><small>Terms &amp; fixed monthly salary</small></div></a></li>
       <li><a class="dropdown-item" target="_blank" href="<?= $letterUrl('experience') ?>"><span class="lm-ico t-blue"><i class="fa-solid fa-award"></i></span><div><b>Experience Letter</b><small>Joining → till date</small></div></a></li>

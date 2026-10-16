@@ -13,7 +13,12 @@ $dash = fn($v) => ($v === null || $v === '') ? '—' : $v;
 <div class="ep-hero">
   <div class="ep-hero-top">
     <div class="ep-avatar-wrap">
-      <div class="ep-avatar <?= !empty($e['profile_photo']) ? 'has-photo' : '' ?>">
+      <div class="ep-avatar <?= !empty($e['profile_photo']) ? 'has-photo' : '' ?>"
+        <?php if (!empty($e['profile_photo'])): ?>
+          role="button" tabindex="0" title="View photo" style="cursor:pointer"
+          data-photo="<?= e(asset($e['profile_photo'])) ?>" data-name="<?= e($fullName) ?>"
+          onclick="window.OceanPhotoView&&window.OceanPhotoView(this.dataset.photo,this.dataset.name)"
+        <?php endif; ?>>
         <?php if (!empty($e['profile_photo'])): ?>
           <img src="<?= asset($e['profile_photo']) ?>" alt="<?= e($fullName) ?>">
         <?php else: ?>
