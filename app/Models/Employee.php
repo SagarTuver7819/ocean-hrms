@@ -28,8 +28,12 @@ class Employee extends Model
             $params[] = $filters['designation_id'];
         }
         if (!empty($filters['status'])) {
-            $sql .= ' AND e.status = ?';
-            $params[] = $filters['status'];
+            if ($filters['status'] === 'inactive') {
+                $sql .= " AND e.status IN ('inactive','resigned')";
+            } else {
+                $sql .= ' AND e.status = ?';
+                $params[] = $filters['status'];
+            }
         }
         if (!empty($filters['employment_type'])) {
             $sql .= ' AND e.employment_type = ?';

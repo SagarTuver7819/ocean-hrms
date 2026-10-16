@@ -140,6 +140,33 @@ class EmployeeController extends Controller
         $this->redirect('employees/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->authorize('employee.delete');
+        $this->requireCsrf('employees');
+        $emp = $this->employees->find((int) $id);
+        if (!$emp) {
+            $this->flash('error', 'Employee not found.');
+            $this->redirect('employees');
+        }
+        $exitDate = $this->input('exit_date') ?: date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $exitDate)) {
+            $exitDate = date('Y-m-d');
+        }
+        $this->employees->update((int) $id, [
+            'status' => 'resigned',
+            'exit_date' => $exitDate,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        if (!empty($emp['user_id'])) {
+            $this->db()->prepare('UPDATE users SET status = 0, updated_at = NOW() WHERE id = ?')->execute([(int) $emp['user_id']]);
+        }
+        $this->employees->addTimeline((int) $id, 'Employee exited', 'Marked resigned · Exit date ' . date('d-m-Y', strtotime($exitDate)), $exitDate);
+        activity_log('employee', 'deleted', (int) $id, $emp, ['status' => 'resigned', 'exit_date' => $exitDate]);
+        $this->flash('success', $emp['employee_code'] . ' marked as exited (resigned). Login disabled.');
+        $this->redirect('employees?status=inactive');
+    }
+
     public function createLogin(string $id): void
     {
         $this->authorize('employee.edit');
@@ -307,13 +334,22 @@ class EmployeeController extends Controller
             'mobile','personal_email','official_email','marital_status','nationality',
             'current_address','current_city','current_state','current_country','current_pincode',
             'permanent_address','permanent_city','permanent_state','permanent_country','permanent_pincode',
-            'joining_date','employment_type','work_location','confirmation_date',
+            'joining_date','employment_type','work_location','confirmation_date','exit_date',
             'pan_number','aadhaar_number','status',
         ];
         $data = [];
         foreach ($fields as $f) {
             $val = $this->input($f);
             $data[$f] = $val !== '' ? $val : null;
+        }
+        if (in_array($data['status'] ?? '', ['inactive', 'resigned'], true) && empty($data['exit_date'])) {
+            $data['exit_date'] = date('Y-m-d');
+        }
+        if (!in_array($data['status'] ?? '', ['inactive', 'resigned'], true)) {
+            // keep exit_date if already set historically; only clear when moving back to active-like status without a date posted
+            if (($this->input('exit_date') ?? '') === '') {
+                $data['exit_date'] = null;
+            }
         }
         $data['same_as_current'] = $this->input('same_as_current') ? 1 : 0;
         if ($data['same_as_current']) {

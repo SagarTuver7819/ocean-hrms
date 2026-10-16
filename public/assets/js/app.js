@@ -243,7 +243,24 @@ $(function () {
       if (on) dest.val(src.val()).prop('readonly', true);
       else dest.prop('readonly', false);
     });
-  });
+  }).trigger('change');
+
+  /* Exit Date: highlight + require when Inactive / Resigned */
+  function syncExitDate() {
+    const status = ($('#empStatus').val() || '').toLowerCase();
+    const isExit = status === 'inactive' || status === 'resigned';
+    const $wrap = $('#exitDateWrap');
+    const $input = $('#exit_date');
+    if (!$wrap.length) return;
+    $wrap.toggleClass('is-exit', isExit);
+    $input.prop('required', isExit);
+    if (isExit && !$input.val()) {
+      const today = new Date();
+      $input.val(today.toISOString().slice(0, 10));
+    }
+  }
+  $(document).on('change', '#empStatus', syncExitDate);
+  syncExitDate();
 
   /* Rupee amount in words (Indian system) under .js-salary-input */
   function rupeeWords(n) {

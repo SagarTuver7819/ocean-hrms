@@ -71,6 +71,7 @@ $row = function (string $label, $value, bool $highlight = false) use ($dash): st
         <?= $row('Date of Joining', format_date($e['joining_date'] ?? null, 'd-m-Y')) ?>
         <?= $row('Probation Period', !empty($e['probation_period_days']) ? $e['probation_period_days'] . ' days' : null) ?>
         <?= $row('Confirmation Date', format_date($e['confirmation_date'] ?? null, 'd-m-Y')) ?>
+        <?= $row('Exit Date', format_date($e['exit_date'] ?? null, 'd-m-Y')) ?>
         <?= $row('Notice Period', !empty($e['notice_period_days']) ? $e['notice_period_days'] . ' days' : null) ?>
         <div class="ep-row"><span>Status</span><b><span class="badge-status badge-<?= e($e['status']) ?>"><?= e(str_replace('_', ' ', $e['status'])) ?></span></b></div>
 

@@ -91,6 +91,15 @@
                 <a href="<?= url('employees/'.$e['id'].'/edit') ?>" class="btn-icon tone-orange" title="Edit"><i class="fa-solid fa-pen"></i></a>
                 <a href="<?= url('salary/employee/'.$e['id']) ?>" class="btn-icon tone-green" title="Salary"><i class="fa-solid fa-indian-rupee-sign"></i></a>
                 <a href="<?= url('employees/'.$e['id'].'?tab=documents') ?>" class="btn-icon tone-violet" title="Documents"><i class="fa-solid fa-folder"></i></a>
+                <?php if (can('employee.delete') && !in_array($e['status'], ['resigned', 'inactive'], true)): ?>
+                  <form method="post" action="<?= url('employees/' . $e['id'] . '/delete') ?>" class="d-inline">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn-icon tone-red" title="Exit / Delete"
+                      data-confirm="Mark <?= e($e['employee_code']) ?> as exited (resigned)? Login will be disabled.">
+                      <i class="fa-solid fa-user-xmark"></i>
+                    </button>
+                  </form>
+                <?php endif; ?>
               </div>
             </td>
           </tr>

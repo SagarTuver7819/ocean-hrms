@@ -37,6 +37,10 @@ function group_open(string $page, array $keys): string {
         <span class="ico t-blue"><i class="fa-solid fa-id-card"></i></span>
         <span class="txt"><b>My Profile</b><small>Personal details</small></span>
       </a>
+      <a href="<?= url('org-chart') ?>" class="sidebar-link <?= nav_active($page, ['org-chart']) ?>" data-menu="organization chart team structure">
+        <span class="ico t-violet"><i class="fa-solid fa-sitemap"></i></span>
+        <span class="txt"><b>Org Chart</b><small>Team structure</small></span>
+      </a>
       <a href="<?= url('employee/leave') ?>" class="sidebar-link <?= nav_active($page, ['emp-leave']) ?>" data-menu="leave apply">
         <span class="ico t-red"><i class="fa-solid fa-calendar-check"></i></span>
         <span class="txt"><b>My Leave</b><small>Apply &amp; track leave</small></span>
@@ -99,7 +103,7 @@ function group_open(string $page, array $keys): string {
       </div>
       <?php endif; ?>
 
-      <div class="nav-group <?= group_open($page, ['employees', 'employee-logins']) ?>" data-menu-group="employees staff directory exit login password credentials">
+      <div class="nav-group <?= group_open($page, ['employees', 'employee-logins', 'employee-self-fill', 'org-chart']) ?>" data-menu-group="employees staff directory exit login password credentials self fill qr whatsapp organization chart founder">
         <button type="button" class="nav-group-btn">
           <span class="ico t-violet"><i class="fa-solid fa-users"></i></span>
           <span class="txt"><b>Employees</b><small>Staff directory</small></span>
@@ -108,6 +112,8 @@ function group_open(string $page, array $keys): string {
         <div class="nav-sub">
           <a href="<?= url('employees') ?>" class="<?= nav_active($page, ['employees']) ?>">All Employees</a>
           <a href="<?= url('employees/create') ?>">Add Employee</a>
+          <a href="<?= url('org-chart') ?>" class="<?= nav_active($page, ['org-chart']) ?>">Organization Chart</a>
+          <a href="<?= url('employees/self-fill') ?>" class="<?= nav_active($page, ['employee-self-fill']) ?>">Self-Fill QR</a>
           <a href="<?= url('employees/logins') ?>" class="<?= nav_active($page, ['employee-logins']) ?>">Employee Logins</a>
           <a href="<?= url('employees?status=inactive') ?>">Inactive / Exit</a>
         </div>

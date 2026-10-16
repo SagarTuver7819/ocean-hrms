@@ -34,6 +34,16 @@ ob_start(); ?>
     <a href="<?= url('employees/logins') ?>" class="btn btn-soft btn-sm"><i class="fa-solid fa-key me-1"></i>Login Details</a>
   <?php endif; ?>
   <a href="<?= url('employees/' . $e['id'] . '/edit') ?>" class="btn btn-brand btn-sm"><i class="fa-solid fa-pen me-1"></i>Edit Employee</a>
+  <?php if (can('employee.delete') && !in_array($e['status'], ['resigned', 'inactive'], true)): ?>
+    <form method="post" action="<?= url('employees/' . $e['id'] . '/delete') ?>" class="d-inline">
+      <?= csrf_field() ?>
+      <input type="hidden" name="exit_date" value="<?= e(date('Y-m-d')) ?>">
+      <button type="submit" class="btn btn-outline-danger btn-sm"
+        data-confirm="Mark <?= e($e['employee_code']) ?> as exited (resigned)? Login will be disabled.">
+        <i class="fa-solid fa-user-xmark me-1"></i>Exit / Delete
+      </button>
+    </form>
+  <?php endif; ?>
 <?php $actions = ob_get_clean();
 
 $tabs = [

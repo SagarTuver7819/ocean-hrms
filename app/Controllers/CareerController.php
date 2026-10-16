@@ -21,12 +21,14 @@ class CareerController extends Controller
     ];
     private const PHOTO_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
-    public const DEFAULT_POSITIONS = "Web Developer\nWeb Designer\nDesigning\nReceptionist\nSales Executive";
+    public const DEFAULT_POSITIONS = "Intern Employee\nJunior Designer\nSenior Designer\nJunior Web Designer\nSenior Web Designer\nJunior Shopify Developer\nSenior Shopify Developer\nJunior Wordpress Developer\nSenior Wordpress Developer\nJunior Web Developer\nSenior Web Developer";
 
     public static function positions(): array
     {
-        $list = preg_split('/\R/', (string) setting('careers_positions', self::DEFAULT_POSITIONS));
-        return array_values(array_unique(array_filter(array_map('trim', $list), fn($p) => $p !== '' && strcasecmp($p, 'other') !== 0)));
+        $fallback = implode("\n", \App\Services\OceanOrgMasters::positions());
+        $list = preg_split('/\R/', (string) setting('careers_positions', $fallback));
+        $fromSetting = array_values(array_unique(array_filter(array_map('trim', $list), fn($p) => $p !== '' && strcasecmp($p, 'other') !== 0)));
+        return $fromSetting ?: \App\Services\OceanOrgMasters::positions();
     }
 
     public function apply(): void

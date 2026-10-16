@@ -11,6 +11,8 @@ return [
     'timezone'   => 'Asia/Kolkata',
     'debug'      => $env['debug'] ?? true,
     'key'        => $env['key'] ?? 'b3aa032a99d08cc35413c39b12937cffb85527af4708e435', // encrypts stored employee login passwords; changing it invalidates them
+    // Browser URL: /db-sync?token=...  (override in env.php on live if you want)
+    'db_sync_token' => $env['db_sync_token'] ?? 'ocean-hrms-db-sync',
     'session'    => 'ocean_hrms_session',
     'upload_max' => 5 * 1024 * 1024, // 5MB
     'allowed_mimes' => [

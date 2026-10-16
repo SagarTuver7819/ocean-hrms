@@ -173,6 +173,7 @@ CREATE TABLE employees (
   shift_id INT UNSIGNED NULL,
   probation_period_days INT DEFAULT 90,
   confirmation_date DATE NULL,
+  exit_date DATE NULL,
   notice_period_days INT DEFAULT 30,
   status ENUM('draft','onboarding','probation','active','inactive','resigned') DEFAULT 'onboarding',
   pan_number VARCHAR(20) NULL,

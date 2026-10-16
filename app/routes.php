@@ -11,6 +11,14 @@ $router->get('/logout', ['AuthController', 'logout'], ['AuthMiddleware']);
 $router->get('/change-password', ['AuthController', 'showChangePassword'], ['AuthMiddleware']);
 $router->post('/change-password', ['AuthController', 'changePassword'], ['AuthMiddleware']);
 
+// DB sync (token OR logged-in admin with employee.delete) — applies pending schema patches
+$router->get('/db-sync', ['DbSyncController', 'run']);
+
+// Organization chart
+$router->get('/org-chart', ['OrgChartController', 'index'], ['AuthMiddleware']);
+$router->get('/org-chart/print', ['OrgChartController', 'print'], ['AuthMiddleware']);
+$router->post('/org-chart/leaders', ['OrgChartController', 'saveLeaders'], ['AuthMiddleware']);
+
 // HR / Admin
 $router->get('/', ['DashboardController', 'index'], ['AuthMiddleware']);
 $router->get('/dashboard', ['DashboardController', 'index'], ['AuthMiddleware']);
@@ -30,17 +38,26 @@ $router->post('/designations/{id}/delete', ['DesignationController', 'destroy'],
 $router->get('/employees', ['EmployeeController', 'index'], ['AuthMiddleware']);
 $router->get('/employees/create', ['EmployeeController', 'create'], ['AuthMiddleware']);
 $router->post('/employees', ['EmployeeController', 'store'], ['AuthMiddleware']);
+$router->get('/employees/self-fill', ['EmployeeSelfFillController', 'admin'], ['AuthMiddleware']);
+$router->post('/employees/self-fill', ['EmployeeSelfFillController', 'createInvite'], ['AuthMiddleware']);
+$router->post('/employees/self-fill/{id}/revoke', ['EmployeeSelfFillController', 'revoke'], ['AuthMiddleware']);
 $router->get('/employees/logins', ['EmployeeController', 'logins'], ['AuthMiddleware']);
 $router->post('/employees/logins/generate', ['EmployeeController', 'issueAllLogins'], ['AuthMiddleware']);
 $router->post('/employees/{id}/login/toggle', ['EmployeeController', 'toggleLogin'], ['AuthMiddleware']);
 $router->get('/employees/{id}', ['EmployeeController', 'show'], ['AuthMiddleware']);
 $router->get('/employees/{id}/edit', ['EmployeeController', 'edit'], ['AuthMiddleware']);
 $router->post('/employees/{id}', ['EmployeeController', 'update'], ['AuthMiddleware']);
+$router->post('/employees/{id}/delete', ['EmployeeController', 'destroy'], ['AuthMiddleware']);
 $router->post('/employees/{id}/login', ['EmployeeController', 'createLogin'], ['AuthMiddleware']);
 $router->post('/employees/{id}/documents', ['EmployeeController', 'uploadDocument'], ['AuthMiddleware']);
 $router->post('/employees/{id}/photo', ['EmployeeController', 'photo'], ['AuthMiddleware']);
 $router->post('/employees/{id}/photo/remove', ['EmployeeController', 'removePhoto'], ['AuthMiddleware']);
 $router->get('/employees/{id}/letters/{type}', ['LetterController', 'employee'], ['AuthMiddleware']);
+
+// Public employee self-fill (QR / WhatsApp, time-limited)
+$router->get('/fill/{token}', ['EmployeeSelfFillController', 'form']);
+$router->post('/fill/{token}/verify', ['EmployeeSelfFillController', 'verify']);
+$router->post('/fill/{token}', ['EmployeeSelfFillController', 'submit']);
 
 // Attendance
 $router->get('/attendance', ['AttendanceController', 'index'], ['AuthMiddleware']);
