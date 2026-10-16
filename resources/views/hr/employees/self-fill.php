@@ -103,7 +103,7 @@ $company = setting('company_name', $app['company']);
           <div class="input-group mb-2">
             <input type="text" class="form-control" id="sfUrl" readonly value="<?= e($fillUrl) ?>">
           </div>
-          <p class="small text-muted mb-0">Employee opens link → <b>Employee Code auto-generated (read-only)</b> → fills form → new employee added in HRMS (salary not included). Same mobile updates existing record.</p>
+          <p class="small text-muted mb-0">Employee opens link → <b>Employee Code auto-generated (read-only)</b> → fills Personal, Designation, Address, Bank, KYC, Emergency → saved in HRMS (<b>salary not included</b>). Same mobile updates existing record.</p>
         </div>
       </div>
 
@@ -113,7 +113,7 @@ $company = setting('company_name', $app['company']);
           <div><b><?= e($company) ?></b><small>Employee self-fill · Limited time</small></div>
         </div>
         <h2>SCAN TO FILL DETAILS</h2>
-        <p>Personal · Address · Bank · KYC · Emergency<br><small>Valid until <?= e(date('d M Y', strtotime($active['expires_at']))) ?></small></p>
+        <p>Personal · Designation · Address · Bank · KYC · Emergency<br><small>Valid until <?= e(date('d M Y', strtotime($active['expires_at']))) ?></small></p>
         <div class="qr-box"><div id="sfQr"></div></div>
         <div class="qr-url"><?= e($fillUrl) ?></div>
         <ul class="qr-steps">

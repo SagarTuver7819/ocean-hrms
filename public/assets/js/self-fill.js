@@ -60,6 +60,13 @@
     $('#sfPermWrap').classList.toggle('d-none', this.checked);
   });
 
+  /* Designation → auto-select related department */
+  $('#sfDesignation')?.addEventListener('change', function () {
+    const dept = this.options[this.selectedIndex]?.getAttribute('data-dept') || '';
+    const deptSel = $('#sfDepartment');
+    if (deptSel && dept) deptSel.value = dept;
+  });
+
   $('#sfPrev')?.addEventListener('click', () => { if (step > 1) showStep(step - 1); });
 
   $('#sfNext')?.addEventListener('click', () => {

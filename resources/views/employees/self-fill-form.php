@@ -37,8 +37,8 @@ $nextCode = $nextCode ?? '';
     <p class="cr-sub"><?= e($company) ?></p>
     <p class="cr-text text-center">Your employee code is auto-generated. Fill personal, address, bank, KYC &amp; emergency. Salary is handled by HR only.</p>
     <ul class="cr-steps-info">
-      <li><i class="fa-solid fa-hashtag"></i> Auto code</li>
       <li><i class="fa-solid fa-user"></i> Personal</li>
+      <li><i class="fa-solid fa-briefcase"></i> Designation</li>
       <li><i class="fa-solid fa-building-columns"></i> Bank &amp; KYC</li>
       <li><i class="fa-solid fa-phone"></i> Emergency</li>
     </ul>
@@ -52,7 +52,7 @@ $nextCode = $nextCode ?? '';
 
     <div class="cr-progress">
       <div class="cr-progress-bar"><span id="sfBar"></span></div>
-      <div class="cr-progress-meta"><b id="sfStepTitle">Personal</b><span id="sfStepCount">Step 1 of 5</span></div>
+      <div class="cr-progress-meta"><b id="sfStepTitle">Personal</b><span id="sfStepCount">Step 1 of 6</span></div>
     </div>
 
     <!-- 1 Personal (+ auto code) -->
@@ -102,8 +102,53 @@ $nextCode = $nextCode ?? '';
       </div>
     </section>
 
-    <!-- 2 Address -->
-    <section class="cr-card cr-step d-none" data-step="2" data-title="Address">
+    <!-- 2 Employment (no salary) -->
+    <section class="cr-card cr-step d-none" data-step="2" data-title="Employment">
+      <h2><i class="fa-solid fa-briefcase"></i> Employment</h2>
+      <p class="cr-hint">Department, designation &amp; job details. Salary is not collected here.</p>
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label req">Designation</label>
+          <select class="form-select" name="designation_id" id="sfDesignation" required>
+            <option value="">Select designation</option>
+            <?php foreach ($designations as $g): ?>
+              <option value="<?= (int) $g['id'] ?>" data-dept="<?= (int) ($g['department_id'] ?? 0) ?>"><?= e($g['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Department</label>
+          <select class="form-select" name="department_id" id="sfDepartment">
+            <option value="">Select department</option>
+            <?php foreach ($departments as $d): ?>
+              <option value="<?= (int) $d['id'] ?>"><?= e($d['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Employment type</label>
+          <select class="form-select" name="employment_type">
+            <option value="full_time">Full Time</option>
+            <option value="intern">Intern</option>
+            <option value="part_time">Part Time</option>
+            <option value="contract">Contract</option>
+            <option value="freelancer">Freelancer</option>
+            <option value="consultant">Consultant</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Joining date</label>
+          <input type="date" class="form-control" name="joining_date" value="<?= e(date('Y-m-d')) ?>">
+        </div>
+        <div class="col-12">
+          <label class="form-label">Work location</label>
+          <input class="form-control" name="work_location" placeholder="e.g. Rajkot Office">
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 Address -->
+    <section class="cr-card cr-step d-none" data-step="3" data-title="Address">
       <h2><i class="fa-solid fa-location-dot"></i> Address</h2>
       <p class="cr-hint">Current &amp; permanent address.</p>
       <label class="form-label">Current address</label>
@@ -130,8 +175,8 @@ $nextCode = $nextCode ?? '';
       </div>
     </section>
 
-    <!-- 3 Bank -->
-    <section class="cr-card cr-step d-none" data-step="3" data-title="Bank details">
+    <!-- 4 Bank -->
+    <section class="cr-card cr-step d-none" data-step="4" data-title="Bank details">
       <h2><i class="fa-solid fa-building-columns"></i> Bank</h2>
       <p class="cr-hint">Salary account (amount is managed by HR — not shown here).</p>
       <div class="row g-3">
@@ -151,8 +196,8 @@ $nextCode = $nextCode ?? '';
       </div>
     </section>
 
-    <!-- 4 KYC -->
-    <section class="cr-card cr-step d-none" data-step="4" data-title="KYC">
+    <!-- 5 KYC -->
+    <section class="cr-card cr-step d-none" data-step="5" data-title="KYC">
       <h2><i class="fa-solid fa-id-card"></i> KYC</h2>
       <p class="cr-hint">PAN &amp; Aadhaar for company records.</p>
       <div class="mb-3">
@@ -165,8 +210,8 @@ $nextCode = $nextCode ?? '';
       </div>
     </section>
 
-    <!-- 5 Emergency -->
-    <section class="cr-card cr-step d-none" data-step="5" data-title="Emergency contact">
+    <!-- 6 Emergency -->
+    <section class="cr-card cr-step d-none" data-step="6" data-title="Emergency contact">
       <h2><i class="fa-solid fa-phone-volume"></i> Emergency</h2>
       <p class="cr-hint">Person we should contact in an emergency.</p>
       <div class="row g-3">
@@ -213,6 +258,6 @@ window.SF = {
   csrf: <?= json_encode(csrf_token()) ?>
 };
 </script>
-<script src="<?= asset('assets/js/self-fill.js') ?>?v=2"></script>
+<script src="<?= asset('assets/js/self-fill.js') ?>?v=3"></script>
 </body>
 </html>

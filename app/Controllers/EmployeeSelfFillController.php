@@ -111,11 +111,19 @@ class EmployeeSelfFillController extends Controller
             return;
         }
 
+        $db = $this->db();
+        $departments = $db->query('SELECT id, name FROM departments WHERE status = 1 ORDER BY name')->fetchAll();
+        $designations = $db->query(
+            'SELECT id, name, department_id FROM designations WHERE status = 1 ORDER BY name'
+        )->fetchAll();
+
         $this->view('employees/self-fill-form', [
-            'title'    => 'Employee Details',
-            'invite'   => $invite,
-            'token'    => $token,
-            'nextCode' => $this->employees->nextCode(),
+            'title'         => 'Employee Details',
+            'invite'        => $invite,
+            'token'         => $token,
+            'nextCode'      => $this->employees->nextCode(),
+            'departments'   => $departments,
+            'designations'  => $designations,
         ], null);
     }
 
@@ -167,6 +175,37 @@ class EmployeeSelfFillController extends Controller
         if (empty($_POST['declaration'])) {
             $errors[] = 'Please accept the declaration.';
         }
+
+        $designationId = (int) $this->input('designation_id', 0);
+        $departmentId = (int) $this->input('department_id', 0);
+        $desRow = null;
+        if ($designationId > 0) {
+            $st = $this->db()->prepare('SELECT id, department_id FROM designations WHERE id = ? AND status = 1');
+            $st->execute([$designationId]);
+            $desRow = $st->fetch();
+            if (!$desRow) {
+                $errors[] = 'Invalid designation selected.';
+            } elseif ($departmentId < 1 && !empty($desRow['department_id'])) {
+                $departmentId = (int) $desRow['department_id'];
+            }
+        }
+        if ($departmentId > 0) {
+            $st = $this->db()->prepare('SELECT id FROM departments WHERE id = ? AND status = 1');
+            $st->execute([$departmentId]);
+            if (!$st->fetch()) {
+                $errors[] = 'Invalid department selected.';
+            }
+        }
+
+        $employmentType = $s('employment_type', 40);
+        if ($employmentType !== '' && !in_array($employmentType, ['full_time', 'part_time', 'intern', 'freelancer', 'contract', 'consultant'], true)) {
+            $employmentType = 'full_time';
+        }
+        $joiningDate = $s('joining_date', 10);
+        if ($joiningDate !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $joiningDate)) {
+            $errors[] = 'Joining date is invalid.';
+        }
+
         if ($errors) {
             $this->json(['ok' => false, 'message' => implode(' ', $errors)], 422);
         }
@@ -205,8 +244,15 @@ class EmployeeSelfFillController extends Controller
             'same_as_current' => $same,
             'pan_number' => $pan !== '' ? $pan : null,
             'aadhaar_number' => $aadhaar !== '' ? $aadhaar : null,
+            'department_id' => $departmentId > 0 ? $departmentId : null,
+            'designation_id' => $designationId > 0 ? $designationId : null,
+            'employment_type' => $employmentType !== '' ? $employmentType : 'full_time',
+            'work_location' => $nullable('work_location', 120),
             'updated_at' => date('Y-m-d H:i:s'),
         ];
+        if ($joiningDate !== '') {
+            $data['joining_date'] = $joiningDate;
+        }
         if ($same) {
             $data['permanent_address'] = $data['current_address'];
             $data['permanent_city'] = $data['current_city'];
@@ -231,8 +277,9 @@ class EmployeeSelfFillController extends Controller
         } else {
             $data['employee_code'] = $code;
             $data['status'] = 'onboarding';
-            $data['employment_type'] = 'full_time';
-            $data['joining_date'] = date('Y-m-d');
+            if (empty($data['joining_date'])) {
+                $data['joining_date'] = date('Y-m-d');
+            }
             $data['created_at'] = date('Y-m-d H:i:s');
             $empId = $this->employees->create($data);
             $this->employees->addTimeline($empId, 'Employee joined', $first . ' ' . $last . ' added via QR self-fill', date('Y-m-d'));
