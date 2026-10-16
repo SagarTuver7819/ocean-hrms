@@ -1,0 +1,25 @@
+# Local / live secrets — never commit
+app/Config/env.php
+
+# Uploads & runtime data
+storage/uploads/
+storage/logs/
+storage/backup_*/
+storage/*.sql
+storage/tmp_*
+public/assets/uploads/photos/*
+!public/assets/uploads/photos/.gitkeep
+# letterhead + logo stay tracked for deploy
+
+# Keep logo folder tracked, ignore other junk
+*.log
+
+# Local packages / IDE
+.cursor/
+ocean_hrms.zip
+*.zip
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

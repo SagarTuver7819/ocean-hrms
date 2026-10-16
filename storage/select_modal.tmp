@@ -1,0 +1,58 @@
+<div class="modal fade crud-modal" id="selectModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form method="post" action="<?= url('recruitment/' . $c['id'] . '/select') ?>" class="modal-content js-loading">
+      <?= csrf_field() ?>
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-circle-check me-2 text-success"></i>Finalise Salary &amp; Select</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="select-summary">
+          <div class="cand-avatar"><?= e(strtoupper(mb_substr($c['first_name'], 0, 1) . mb_substr($c['last_name'], 0, 1))) ?></div>
+          <div class="min-w-0">
+            <b><?= e($c['full_name']) ?></b>
+            <small><?= e($c['position']) ?> · <?= e($c['application_no']) ?></small>
+          </div>
+          <div class="ms-auto text-end">
+            <small>Expected</small>
+            <b><?= $inr($c['expected_ctc']) ?></b>
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label required">Final Monthly Salary (₹)</label>
+            <input type="number" name="offered_salary" class="form-control form-control-lg js-salary-input" min="1" step="1" required value="<?= $suggestedSalary ? (int) $suggestedSalary : '' ?>" placeholder="e.g. 25000">
+            <div class="form-text js-salary-words"></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label required">Joining Date</label>
+            <input type="date" name="joining_date" class="form-control form-control-lg" required min="<?= date('Y-m-d') ?>" value="<?= e($c['joining_date'] ?: date('Y-m-d', strtotime('+7 days'))) ?>">
+            <div class="form-text">Offer letter will mention this joining date.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Probation (months)</label>
+            <input type="number" name="probation_months" class="form-control" min="0" max="12" value="<?= (int) ($c['probation_months'] ?? 3) ?>">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Accept Offer By</label>
+            <input type="date" name="offer_valid_till" class="form-control" min="<?= date('Y-m-d') ?>" value="<?= e($c['offer_valid_till'] ?: date('Y-m-d', strtotime('+3 days'))) ?>">
+          </div>
+          <div class="col-12">
+            <label class="form-label">HR Remarks</label>
+            <textarea name="hr_remarks" id="selectRemarks" class="form-control" rows="2" placeholder="Interview summary"><?= e($c['hr_remarks'] ?? '') ?></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-check">
+              <input type="checkbox" name="open_offer" value="1" class="form-check-input" checked>
+              <span class="form-check-label">Open the A4 offer letter after saving</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-success"><i class="fa-solid fa-circle-check me-1"></i><?= $offerReady ? 'Update Offer' : 'Confirm Selection' ?></button>
+      </div>
+    </form>
+  </div>
+</div>
