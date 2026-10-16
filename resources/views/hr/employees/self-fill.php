@@ -103,7 +103,7 @@ $company = setting('company_name', $app['company']);
           <div class="input-group mb-2">
             <input type="text" class="form-control" id="sfUrl" readonly value="<?= e($fillUrl) ?>">
           </div>
-          <p class="small text-muted mb-0">Employee opens link → enters <b>Employee Code + Mobile</b> → fills form → data saves in Employee profile (salary not included).</p>
+          <p class="small text-muted mb-0">Employee opens link → <b>Employee Code auto-generated (read-only)</b> → fills form → new employee added in HRMS (salary not included). Same mobile updates existing record.</p>
         </div>
       </div>
 
@@ -118,7 +118,7 @@ $company = setting('company_name', $app['company']);
         <div class="qr-url"><?= e($fillUrl) ?></div>
         <ul class="qr-steps">
           <li><span>1</span>Scan / open link</li>
-          <li><span>2</span>Enter code + mobile</li>
+          <li><span>2</span>Auto employee code</li>
           <li><span>3</span>Fill your details</li>
           <li><span>4</span>Submit → saved in HRMS</li>
         </ul>

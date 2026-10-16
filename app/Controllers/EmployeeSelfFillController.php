@@ -9,7 +9,7 @@ use App\Models\Employee;
 
 /**
  * Time-limited employee self-fill campaign (QR / WhatsApp).
- * Employees verify with code + mobile, then update their own profile (no salary).
+ * Auto employee code (read-only) · submit creates / updates employee (no salary).
  */
 class EmployeeSelfFillController extends Controller
 {
@@ -57,7 +57,7 @@ class EmployeeSelfFillController extends Controller
             'fillUrl' => $fillUrl,
             'isLocal' => $fillUrl ? (bool) preg_match('#^https?://(localhost|127\.0\.0\.1)#', $fillUrl) : false,
             'waText'  => $fillUrl
-                ? "Namaste,\n\nPlease fill your employee details using this link (valid for limited time):\n{$fillUrl}\n\n— Ocean Infotech HR"
+                ? "Namaste,\n\nPlease fill your employee details using this link (valid for limited time).\nEmployee code will be auto-generated.\n{$fillUrl}\n\n— Ocean Infotech HR"
                 : '',
         ]);
     }
@@ -75,7 +75,6 @@ class EmployeeSelfFillController extends Controller
         }
 
         $db = $this->db();
-        // Deactivate previous active invites
         $db->exec('UPDATE employee_self_fill_invites SET is_active = 0 WHERE is_active = 1');
 
         $token = bin2hex(random_bytes(16));
@@ -113,101 +112,17 @@ class EmployeeSelfFillController extends Controller
         }
 
         $this->view('employees/self-fill-form', [
-            'title'  => 'Employee Details',
-            'invite' => $invite,
-            'token'  => $token,
+            'title'    => 'Employee Details',
+            'invite'   => $invite,
+            'token'    => $token,
+            'nextCode' => $this->employees->nextCode(),
         ], null);
     }
 
-    /** Public: verify employee code + mobile → return prefill JSON */
+    /** Legacy endpoint — form no longer verifies by code */
     public function verify(string $token): void
     {
-        $this->ensureTables();
-        if (!$this->findInvite($token)) {
-            $this->json(['ok' => false, 'message' => 'This link has expired. Contact HR.'], 410);
-        }
-        if (!CSRF::validate($this->input('_csrf'))) {
-            $this->json(['ok' => false, 'message' => 'Session expired. Refresh and try again.'], 419);
-        }
-
-        $code = strtoupper(trim((string) $this->input('employee_code', '')));
-        $mobile = preg_replace('/\D/', '', (string) $this->input('mobile', ''));
-        if ($code === '' || !preg_match('/^[6-9]\d{9}$/', $mobile)) {
-            $this->json(['ok' => false, 'message' => 'Enter valid Employee Code and 10-digit mobile.'], 422);
-        }
-
-        $stmt = $this->db()->prepare(
-            "SELECT e.*, b.bank_name, b.account_holder_name, b.account_number, b.ifsc_code, b.branch AS bank_branch, b.payment_mode,
-                    em.contact_name AS emergency_name, em.relationship AS emergency_relationship,
-                    em.mobile AS emergency_mobile, em.alternate_number AS emergency_alternate, em.address AS emergency_address,
-                    d.name AS department_name, g.name AS designation_name
-             FROM employees e
-             LEFT JOIN employee_bank_details b ON b.employee_id = e.id
-             LEFT JOIN employee_emergency_contacts em ON em.employee_id = e.id
-             LEFT JOIN departments d ON d.id = e.department_id
-             LEFT JOIN designations g ON g.id = e.designation_id
-             WHERE UPPER(e.employee_code) = ? AND e.status NOT IN ('inactive','resigned')
-             LIMIT 1"
-        );
-        $stmt->execute([$code]);
-        $emp = $stmt->fetch();
-        if (!$emp) {
-            $this->json(['ok' => false, 'message' => 'Employee code not found (or exited). Contact HR.'], 404);
-        }
-
-        $stored = preg_replace('/\D/', '', (string) ($emp['mobile'] ?? ''));
-        // If HR already stored a mobile, it must match; if blank, first self-fill can set it
-        if ($stored !== '' && !str_ends_with($stored, $mobile) && $stored !== $mobile) {
-            $this->json(['ok' => false, 'message' => 'Mobile number does not match our records for this employee.'], 404);
-        }
-
-        $_SESSION['self_fill_emp'] = (int) $emp['id'];
-        $_SESSION['self_fill_token'] = $token;
-
-        $this->json([
-            'ok' => true,
-            'employee' => [
-                'id' => (int) $emp['id'],
-                'employee_code' => $emp['employee_code'],
-                'first_name' => $emp['first_name'],
-                'middle_name' => $emp['middle_name'],
-                'last_name' => $emp['last_name'],
-                'gender' => $emp['gender'],
-                'date_of_birth' => $emp['date_of_birth'],
-                'blood_group' => $emp['blood_group'],
-                'marital_status' => $emp['marital_status'],
-                'mobile' => $emp['mobile'],
-                'personal_email' => $emp['personal_email'],
-                'official_email' => $emp['official_email'],
-                'nationality' => $emp['nationality'] ?: 'Indian',
-                'current_address' => $emp['current_address'],
-                'current_city' => $emp['current_city'],
-                'current_state' => $emp['current_state'],
-                'current_country' => $emp['current_country'] ?: 'India',
-                'current_pincode' => $emp['current_pincode'],
-                'permanent_address' => $emp['permanent_address'],
-                'permanent_city' => $emp['permanent_city'],
-                'permanent_state' => $emp['permanent_state'],
-                'permanent_country' => $emp['permanent_country'] ?: 'India',
-                'permanent_pincode' => $emp['permanent_pincode'],
-                'same_as_current' => (int) ($emp['same_as_current'] ?? 0),
-                'pan_number' => $emp['pan_number'],
-                'aadhaar_number' => $emp['aadhaar_number'],
-                'bank_name' => $emp['bank_name'],
-                'account_holder_name' => $emp['account_holder_name'],
-                'account_number' => $emp['account_number'],
-                'ifsc_code' => $emp['ifsc_code'],
-                'bank_branch' => $emp['bank_branch'],
-                'payment_mode' => $emp['payment_mode'] ?: 'bank_transfer',
-                'emergency_name' => $emp['emergency_name'],
-                'emergency_relationship' => $emp['emergency_relationship'],
-                'emergency_mobile' => $emp['emergency_mobile'],
-                'emergency_alternate' => $emp['emergency_alternate'],
-                'emergency_address' => $emp['emergency_address'],
-                'department_name' => $emp['department_name'],
-                'designation_name' => $emp['designation_name'],
-            ],
-        ]);
+        $this->json(['ok' => false, 'message' => 'Verification not required. Employee code is auto-generated.'], 410);
     }
 
     public function submit(string $token): void
@@ -222,16 +137,6 @@ class EmployeeSelfFillController extends Controller
         }
         if (trim((string) $this->input('website', '')) !== '') {
             $this->json(['ok' => false, 'message' => 'Unable to submit.'], 422);
-        }
-
-        $empId = (int) ($_SESSION['self_fill_emp'] ?? 0);
-        if ($empId < 1 || ($_SESSION['self_fill_token'] ?? '') !== $token) {
-            $this->json(['ok' => false, 'message' => 'Please verify Employee Code & mobile again.'], 403);
-        }
-
-        $emp = $this->employees->find($empId);
-        if (!$emp || in_array($emp['status'], ['inactive', 'resigned'], true)) {
-            $this->json(['ok' => false, 'message' => 'Employee record not available.'], 404);
         }
 
         $s = fn(string $k, int $max = 255) => mb_substr(trim((string) ($_POST[$k] ?? '')), 0, $max);
@@ -259,11 +164,27 @@ class EmployeeSelfFillController extends Controller
         if ($aadhaar !== '' && !preg_match('/^\d{12}$/', $aadhaar)) {
             $errors[] = 'Aadhaar must be 12 digits.';
         }
+        if (empty($_POST['declaration'])) {
+            $errors[] = 'Please accept the declaration.';
+        }
         if ($errors) {
             $this->json(['ok' => false, 'message' => implode(' ', $errors)], 422);
         }
 
+        // Always generate on server (never trust editable client code)
+        $code = $this->employees->nextCode();
+
+        $dup = $this->db()->prepare(
+            "SELECT id, employee_code FROM employees
+             WHERE REPLACE(REPLACE(REPLACE(IFNULL(mobile,''),' ',''),'-',''),'+','') LIKE ?
+               AND status NOT IN ('inactive','resigned')
+             LIMIT 1"
+        );
+        $dup->execute(['%' . $mobile]);
+        $existing = $dup->fetch();
+
         $same = !empty($_POST['same_as_current']) ? 1 : 0;
+        $off = strtolower($s('official_email', 150));
         $data = [
             'first_name' => $first,
             'middle_name' => $nullable('middle_name', 80),
@@ -274,6 +195,7 @@ class EmployeeSelfFillController extends Controller
             'marital_status' => $nullable('marital_status', 40),
             'mobile' => $mobile,
             'personal_email' => $personalEmail !== '' ? strtolower($personalEmail) : null,
+            'official_email' => ($off !== '' && filter_var($off, FILTER_VALIDATE_EMAIL)) ? $off : null,
             'nationality' => $nullable('nationality', 80) ?: 'Indian',
             'current_address' => $nullable('current_address', 1000),
             'current_city' => $nullable('current_city', 80),
@@ -298,17 +220,25 @@ class EmployeeSelfFillController extends Controller
             $data['permanent_country'] = $nullable('permanent_country', 80) ?: 'India';
             $data['permanent_pincode'] = $nullable('permanent_pincode', 20);
         }
-        // Official email only if empty on record (HR-owned)
-        if (empty($emp['official_email'])) {
-            $off = strtolower($s('official_email', 150));
-            if ($off !== '' && filter_var($off, FILTER_VALIDATE_EMAIL)) {
-                $data['official_email'] = $off;
-            }
-        }
-
-        $this->employees->update($empId, $data);
 
         $db = $this->db();
+        if ($existing) {
+            $empId = (int) $existing['id'];
+            $code = (string) $existing['employee_code'];
+            $this->employees->update($empId, $data);
+            $this->employees->addTimeline($empId, 'Profile self-filled', 'Updated via QR self-fill form');
+            $msg = 'Thank you! Your details are updated in Ocean HRMS.';
+        } else {
+            $data['employee_code'] = $code;
+            $data['status'] = 'onboarding';
+            $data['employment_type'] = 'full_time';
+            $data['joining_date'] = date('Y-m-d');
+            $data['created_at'] = date('Y-m-d H:i:s');
+            $empId = $this->employees->create($data);
+            $this->employees->addTimeline($empId, 'Employee joined', $first . ' ' . $last . ' added via QR self-fill', date('Y-m-d'));
+            $msg = 'Thank you! Your profile is created in Ocean HRMS.';
+        }
+
         $bank = [
             $nullable('bank_name', 120),
             $nullable('account_holder_name', 120),
@@ -354,14 +284,10 @@ class EmployeeSelfFillController extends Controller
             'INSERT INTO employee_self_fill_logs (invite_id, employee_id, ip_address, created_at) VALUES (?, ?, ?, NOW())'
         )->execute([(int) $invite['id'], $empId, $_SERVER['REMOTE_ADDR'] ?? null]);
 
-        $this->employees->addTimeline($empId, 'Profile self-filled', 'Employee updated personal / bank / KYC / emergency via QR form');
-
-        unset($_SESSION['self_fill_emp'], $_SESSION['self_fill_token']);
-
         $this->json([
             'ok' => true,
-            'message' => 'Thank you! Your details are saved in Ocean HRMS.',
-            'employee_code' => $emp['employee_code'],
+            'message' => $msg,
+            'employee_code' => $code,
         ]);
     }
 
