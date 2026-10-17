@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Sync Ocean Infotech departments + designations (11 roles).
+ * Sync Ocean Infotech departments + designations (incl. Flutter / BDM / BDE).
  * Run: php database/update_it_masters.php
  * Or open: /db-sync?token=ocean-hrms-db-sync
  */

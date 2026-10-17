@@ -50,10 +50,9 @@ $cell = fn(string $label, $value) => '<div class="ef-cell"><span>' . e($label) .
     .ef-cell.full { grid-column: 1 / -1; border-right: 0; }
     .ef-cell span { display: block; color: #6b7280; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .5mm; }
     .ef-cell b { display: block; font-size: 11.5px; font-weight: 700; color: var(--ink); word-break: break-word; }
-    .ef-sign { display: flex; justify-content: space-between; gap: 8mm; margin-top: 8mm; page-break-inside: avoid; }
+    .ef-sign { display: flex; justify-content: space-between; gap: 8mm; margin-top: 5mm; page-break-inside: avoid; }
     .ef-sign .blk { flex: 1; text-align: center; }
-    .ef-sign .blk .line { border-top: 1px solid var(--ink); margin-top: 14mm; padding-top: 1.5mm; font-weight: 800; font-size: 10.5px; }
-    .ef-note { margin-top: 4mm; text-align: center; color: #6b7280; font-size: 9.5px; }
+    .ef-sign .blk .line { border-top: 1px solid var(--ink); margin-top: 12mm; padding-top: 1.5mm; font-weight: 800; font-size: 10.5px; }
   </style>
 </head>
 <body>
@@ -176,7 +175,6 @@ $cell = fn(string $label, $value) => '<div class="ef-cell"><span>' . e($label) .
     <div class="blk"><div class="line">Employee Signature</div></div>
     <div class="blk"><div class="line">HR / Authorised Signatory</div></div>
   </div>
-  <p class="ef-note">This form is generated from Ocean HRMS employee master data. Verify details before filing.</p>
 </div>
 
 <script src="<?= asset('assets/js/paged.js') ?>?v=<?= @filemtime(BASE_PATH . '/public/assets/js/paged.js') ?>"></script>

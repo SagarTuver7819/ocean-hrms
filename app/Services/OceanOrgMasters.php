@@ -25,6 +25,9 @@ class OceanOrgMasters
             'Senior Wordpress Developer',
             'Junior Web Developer',
             'Senior Web Developer',
+            'Sr. Flutter Developer',
+            'BDM',
+            'BDE',
         ];
     }
 
@@ -41,6 +44,8 @@ class OceanOrgMasters
             'Shopify Development' => ['Junior Shopify Developer', 'Senior Shopify Developer'],
             'Wordpress Development' => ['Junior Wordpress Developer', 'Senior Wordpress Developer'],
             'Web Development' => ['Junior Web Developer', 'Senior Web Developer'],
+            'Flutter Development' => ['Sr. Flutter Developer'],
+            'Business Development' => ['BDM', 'BDE'],
         ];
     }
 
@@ -65,6 +70,8 @@ class OceanOrgMasters
             'Shopify Development' => 'SHOPIFY',
             'Wordpress Development' => 'WP',
             'Web Development' => 'WEBDEV',
+            'Flutter Development' => 'FLUTTER',
+            'Business Development' => 'BD',
         ];
 
         foreach ($keepDepts as $name) {
@@ -122,7 +129,7 @@ class OceanOrgMasters
             "INSERT INTO settings (setting_key, setting_value, updated_at) VALUES ('careers_positions', ?, NOW())
              ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()"
         )->execute([$positionsText]);
-        $log[] = 'ok · careers_positions updated (11 roles)';
+        $log[] = 'ok · careers_positions updated (' . count($keepDesigs) . ' roles)';
 
         return $log;
     }

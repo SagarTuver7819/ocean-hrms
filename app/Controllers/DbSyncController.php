@@ -25,14 +25,51 @@ class DbSyncController extends Controller
             exit;
         }
 
+        // #region agent log
+        $dbgLine = json_encode([
+            'sessionId' => '5cf050',
+            'runId' => 'pre-fix',
+            'hypothesisId' => 'D',
+            'location' => 'DbSyncController.php:run',
+            'message' => 'db_sync_start',
+            'data' => ['okToken' => $okToken, 'okAdmin' => $okAdmin],
+            'timestamp' => (int) round(microtime(true) * 1000),
+        ], JSON_UNESCAPED_SLASHES);
+        @file_put_contents(BASE_PATH . '/debug-5cf050.log', $dbgLine . "\n", FILE_APPEND);
+        // #endregion
+
         try {
             $log = DbSync::run();
             $ok = true;
             $error = null;
+            // #region agent log
+            $dbgLine = json_encode([
+                'sessionId' => '5cf050',
+                'runId' => 'pre-fix',
+                'hypothesisId' => 'D',
+                'location' => 'DbSyncController.php:run',
+                'message' => 'db_sync_done',
+                'data' => ['lines' => count($log)],
+                'timestamp' => (int) round(microtime(true) * 1000),
+            ], JSON_UNESCAPED_SLASHES);
+            @file_put_contents(BASE_PATH . '/debug-5cf050.log', $dbgLine . "\n", FILE_APPEND);
+            // #endregion
         } catch (\Throwable $e) {
             $log = [];
             $ok = false;
             $error = $e->getMessage();
+            // #region agent log
+            $dbgLine = json_encode([
+                'sessionId' => '5cf050',
+                'runId' => 'pre-fix',
+                'hypothesisId' => 'E',
+                'location' => 'DbSyncController.php:run',
+                'message' => 'db_sync_exception',
+                'data' => ['error' => $error],
+                'timestamp' => (int) round(microtime(true) * 1000),
+            ], JSON_UNESCAPED_SLASHES);
+            @file_put_contents(BASE_PATH . '/debug-5cf050.log', $dbgLine . "\n", FILE_APPEND);
+            // #endregion
         }
 
         header('Content-Type: text/html; charset=utf-8');
@@ -47,7 +84,7 @@ class DbSyncController extends Controller
         </style></head><body><div class="box">';
         echo '<div class="badge">Ocean HRMS · DB Sync</div>';
         echo '<h1>Database Sync</h1>';
-        echo '<p class="sub">exit_date · 11 designations · self-fill QR · org chart · letters · attendance (safe to re-run)</p>';
+        echo '<p class="sub">exit_date · designations (Flutter / BDM / BDE) · self-fill QR · org chart · letters · attendance (safe to re-run)</p>';
 
         if ($ok) {
             echo '<p class="ok">✓ Sync completed — live DB is up to date</p><ul>';

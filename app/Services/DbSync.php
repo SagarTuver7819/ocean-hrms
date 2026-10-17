@@ -72,7 +72,7 @@ class DbSync
             }
         }
 
-        // Official Ocean departments + designations (11 roles)
+        // Official Ocean departments + designations (incl. Flutter / BDM / BDE)
         foreach (OceanOrgMasters::sync($db) as $line) {
             $log[] = $line;
         }

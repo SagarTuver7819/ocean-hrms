@@ -218,6 +218,15 @@
       }
     });
 
+    // Drop trailing empty sheets (letterhead only — no body content)
+    while (pages.length > 1) {
+      var last = pages[pages.length - 1];
+      var lastBody = last.querySelector('.page-body');
+      if (lastBody && lastBody.children.length) break;
+      last.remove();
+      pages.pop();
+    }
+
     pages.forEach(function (sheet, i) {
       var no = document.createElement('div');
       no.className = 'page-no';
