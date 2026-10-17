@@ -11,11 +11,17 @@ class Employee extends Model
     public function listFiltered(array $filters = []): array
     {
         $sql = "SELECT e.*, d.name AS department_name, des.name AS designation_name,
-                       CONCAT(m.first_name, ' ', m.last_name) AS manager_name
+                       CASE
+                         WHEN e.reporting_leader = 'founder' THEN CONCAT(COALESCE(NULLIF(sf.setting_value, ''), 'Founder'), ' (Direct Owner)')
+                         WHEN e.reporting_leader = 'co_founder' THEN CONCAT(COALESCE(NULLIF(scf.setting_value, ''), 'Co-Founder'), ' (Direct Owner)')
+                         ELSE CONCAT(m.first_name, ' ', m.last_name)
+                       END AS manager_name
                 FROM employees e
                 LEFT JOIN departments d ON d.id = e.department_id
                 LEFT JOIN designations des ON des.id = e.designation_id
                 LEFT JOIN employees m ON m.id = e.reporting_manager_id
+                LEFT JOIN settings sf ON sf.setting_key = 'org_founder_name' AND e.reporting_leader = 'founder'
+                LEFT JOIN settings scf ON scf.setting_key = 'org_co_founder_name' AND e.reporting_leader = 'co_founder'
                 WHERE 1=1";
         $params = [];
 
@@ -57,7 +63,11 @@ class Employee extends Model
             "SELECT e.*, d.name AS department_name, des.name AS designation_name,
                     t.name AS team_name, b.name AS branch_name, s.name AS shift_name,
                     s.start_time AS shift_start, s.end_time AS shift_end,
-                    CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
+                    CASE
+                      WHEN e.reporting_leader = 'founder' THEN CONCAT(COALESCE(NULLIF(sf.setting_value, ''), 'Founder'), ' (Direct Owner)')
+                      WHEN e.reporting_leader = 'co_founder' THEN CONCAT(COALESCE(NULLIF(scf.setting_value, ''), 'Co-Founder'), ' (Direct Owner)')
+                      ELSE CONCAT(m.first_name, ' ', m.last_name)
+                    END AS manager_name,
                     m.employee_code AS manager_code, u.username AS login_username,
                     u.status AS login_status, u.last_login_at
              FROM employees e
@@ -67,6 +77,8 @@ class Employee extends Model
              LEFT JOIN branches b ON b.id = e.branch_id
              LEFT JOIN shifts s ON s.id = e.shift_id
              LEFT JOIN employees m ON m.id = e.reporting_manager_id
+             LEFT JOIN settings sf ON sf.setting_key = 'org_founder_name' AND e.reporting_leader = 'founder'
+             LEFT JOIN settings scf ON scf.setting_key = 'org_co_founder_name' AND e.reporting_leader = 'co_founder'
              LEFT JOIN users u ON u.id = e.user_id
              WHERE e.id = ?"
         );

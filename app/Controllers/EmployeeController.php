@@ -406,8 +406,38 @@ class EmployeeController extends Controller
             'teams' => $db->query('SELECT id, name FROM teams WHERE status = 1 ORDER BY name')->fetchAll(),
             'branches' => $db->query('SELECT id, name FROM branches WHERE status = 1 ORDER BY name')->fetchAll(),
             'shifts' => $db->query('SELECT id, name FROM shifts WHERE status = 1 ORDER BY name')->fetchAll(),
-            'managers' => $db->query("SELECT id, CONCAT(first_name,' ',last_name,' (',employee_code,')') AS name FROM employees WHERE status IN ('active','probation') ORDER BY first_name")->fetchAll(),
+            'managers' => $this->reportingOptions($extra['employee']['id'] ?? null),
         ]);
+    }
+
+    /** Reporting Person list: Direct Owner (Founder / Co-Founder) + employees */
+    private function reportingOptions(?int $excludeEmployeeId = null): array
+    {
+        $options = [];
+        $founder = trim((string) setting('org_founder_name', ''));
+        $coFounder = trim((string) setting('org_co_founder_name', ''));
+        if ($founder !== '') {
+            $options[] = ['id' => '__founder__', 'name' => $founder . ' — Founder / Direct Owner'];
+        }
+        if ($coFounder !== '') {
+            $options[] = ['id' => '__co_founder__', 'name' => $coFounder . ' — Co-Founder / Direct Owner'];
+        }
+
+        $sql = "SELECT id, CONCAT(first_name, ' ', last_name, ' (', employee_code, ')') AS name
+                FROM employees
+                WHERE status IN ('active', 'probation', 'onboarding')";
+        $params = [];
+        if ($excludeEmployeeId) {
+            $sql .= ' AND id <> ?';
+            $params[] = $excludeEmployeeId;
+        }
+        $sql .= ' ORDER BY first_name, last_name';
+        $stmt = $this->db()->prepare($sql);
+        $stmt->execute($params);
+        foreach ($stmt->fetchAll() as $row) {
+            $options[] = $row;
+        }
+        return $options;
     }
 
     private function collectEmployeeData(): array
@@ -442,10 +472,23 @@ class EmployeeController extends Controller
             $data['permanent_country'] = $data['current_country'];
             $data['permanent_pincode'] = $data['current_pincode'];
         }
-        foreach (['department_id','designation_id','reporting_manager_id','team_id','branch_id','shift_id','probation_period_days','notice_period_days'] as $intField) {
+        foreach (['department_id','designation_id','team_id','branch_id','shift_id','probation_period_days','notice_period_days'] as $intField) {
             $v = $this->input($intField);
             $data[$intField] = $v !== '' && $v !== null ? (int) $v : null;
         }
+
+        $report = (string) ($this->input('reporting_manager_id') ?? '');
+        if ($report === '__founder__') {
+            $data['reporting_manager_id'] = null;
+            $data['reporting_leader'] = 'founder';
+        } elseif ($report === '__co_founder__') {
+            $data['reporting_manager_id'] = null;
+            $data['reporting_leader'] = 'co_founder';
+        } else {
+            $data['reporting_manager_id'] = $report !== '' ? (int) $report : null;
+            $data['reporting_leader'] = null;
+        }
+
         return $data;
     }
 

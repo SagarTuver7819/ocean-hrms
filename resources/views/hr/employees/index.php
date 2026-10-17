@@ -72,7 +72,11 @@
             <td><a class="code-pill" href="<?= url('employees/'.$e['id']) ?>"><?= e($e['employee_code']) ?></a></td>
             <td>
               <div class="emp-cell">
-                <div class="emp-av"><?= strtoupper(substr($e['first_name'],0,1)) ?></div>
+                <?php if (!empty($e['profile_photo'])): ?>
+                  <div class="emp-av has-photo"><img src="<?= asset($e['profile_photo']) ?>" alt=""></div>
+                <?php else: ?>
+                  <div class="emp-av"><?= strtoupper(substr((string) $e['first_name'], 0, 1)) ?></div>
+                <?php endif; ?>
                 <div>
                   <div class="emp-name"><?= e($e['first_name'].' '.$e['last_name']) ?></div>
                   <small><?= e($e['official_email'] ?? '') ?></small>

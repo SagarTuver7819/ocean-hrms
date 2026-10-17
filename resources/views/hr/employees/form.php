@@ -136,7 +136,17 @@ $tabs = [
               <?= $select('Employment Type', 'employment_type', $titled(['full_time', 'part_time', 'intern', 'freelancer', 'contract', 'consultant']), $e['employment_type'] ?? 'full_time', ['placeholder' => false]) ?>
               <?= $select('Department', 'department_id', $pairs($departments), $e['department_id'] ?? '', ['search' => true]) ?>
               <?= $select('Designation', 'designation_id', $pairs($designations), $e['designation_id'] ?? '', ['search' => true]) ?>
-              <?= $select('Reporting Manager', 'reporting_manager_id', $pairs($managers), $e['reporting_manager_id'] ?? '', ['search' => true]) ?>
+              <?php
+                $reportCurrent = '';
+                if (($e['reporting_leader'] ?? '') === 'founder') {
+                    $reportCurrent = '__founder__';
+                } elseif (($e['reporting_leader'] ?? '') === 'co_founder') {
+                    $reportCurrent = '__co_founder__';
+                } elseif (!empty($e['reporting_manager_id'])) {
+                    $reportCurrent = (string) $e['reporting_manager_id'];
+                }
+              ?>
+              <?= $select('Reporting Person', 'reporting_manager_id', $pairs($managers), $reportCurrent, ['search' => true]) ?>
               <?= $select('Team', 'team_id', $pairs($teams), $e['team_id'] ?? '') ?>
               <?= $select('Branch', 'branch_id', $pairs($branches), $e['branch_id'] ?? '') ?>
               <?= $select('Shift', 'shift_id', $pairs($shifts), $e['shift_id'] ?? '') ?>

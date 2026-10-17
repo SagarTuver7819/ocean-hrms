@@ -167,6 +167,9 @@ class DbSync
         );
         $log[] = 'ok · employee self-fill tables checked';
 
+        // Reporting person can be Founder / Co-Founder (Direct Owner) from org chart settings
+        $addColumn('employees', 'reporting_leader', "VARCHAR(20) NULL DEFAULT NULL COMMENT 'founder|co_founder' AFTER reporting_manager_id");
+
         // Org chart: Founder / Co-Founder (manual names + photos in settings)
         $orgDefaults = [
             'org_founder_name' => '',
@@ -191,7 +194,7 @@ class DbSync
             $log[] = 'skip · uploads/org exists';
         }
 
-        $syncVersion = '2026-10-16-org-chart-self-fill-v2';
+        $syncVersion = '2026-10-17-reporting-leader-photos-v1';
         $db->prepare(
             "INSERT INTO settings (setting_key, setting_value, updated_at) VALUES ('db_sync_version', ?, NOW())
              ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()"

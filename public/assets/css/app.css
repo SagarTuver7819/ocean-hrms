@@ -935,7 +935,10 @@ img.ep-avatar.cand-hero-photo { object-fit: cover; padding: 0; }
   width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
   background: linear-gradient(135deg, #F5A01B, #e08a0a); color: #fff;
   display: grid; place-items: center; font-weight: 800; font-size: 13px;
+  overflow: hidden;
 }
+.emp-av.has-photo { background: #fff; padding: 0; }
+.emp-av.has-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .emp-name { font-weight: 700; color: var(--ink); line-height: 1.2; }
 .emp-cell small { color: var(--muted); font-size: 11.5px; }
 .form-control, .form-select { min-height: 44px; padding-top: .55rem; padding-bottom: .55rem; }
