@@ -105,13 +105,21 @@ class OrgChartController extends Controller
         )->fetchColumn();
 
         $leaderCol = $hasLeaderCol ? 'e.reporting_leader' : 'NULL';
+        // Employee portal: never load official email / personal mobile (or personal email)
+        $isEmp = Auth::isEmployeePortal();
+        $contactCols = $isEmp
+            ? 'NULL AS mobile, NULL AS official_email, NULL AS personal_email'
+            : 'e.mobile, e.official_email, e.personal_email';
         $employees = $db->query(
             "SELECT e.id, e.employee_code, e.first_name, e.middle_name, e.last_name, e.profile_photo,
                     e.reporting_manager_id, {$leaderCol} AS reporting_leader, e.status, e.employment_type,
-                    e.mobile, e.official_email, e.personal_email, e.joining_date, e.work_location,
+                    {$contactCols}, e.joining_date, e.work_location,
                     g.name AS designation_name, d.name AS department_name,
                     CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
                     CASE
+                      WHEN {$leaderCol} = 'both' THEN CONCAT(
+                        COALESCE(NULLIF(sf.setting_value, ''), 'Founder'), ' & ',
+                        COALESCE(NULLIF(scf.setting_value, ''), 'Co-Founder'), ' (Direct Owners)')
                       WHEN {$leaderCol} = 'founder' THEN CONCAT(COALESCE(NULLIF(sf.setting_value, ''), 'Founder'), ' (Direct Owner)')
                       WHEN {$leaderCol} = 'co_founder' THEN CONCAT(COALESCE(NULLIF(scf.setting_value, ''), 'Co-Founder'), ' (Direct Owner)')
                       ELSE NULL
@@ -166,7 +174,10 @@ class OrgChartController extends Controller
             return $node;
         };
 
-        $attached = [];
+        $cloneTree = static function (array $node): array {
+            return json_decode(json_encode($node), true) ?: $node;
+        };
+
         $founderKids = [];
         $coKids = [];
         $orphanRoots = [];
@@ -178,12 +189,21 @@ class OrgChartController extends Controller
             }
             $leader = (string) ($e['reporting_leader'] ?? '');
             $tree = $build($id);
-            if ($leader === 'founder' && $founder) {
+            if ($leader === 'both') {
+                // Appear under Founder and Co-Founder
+                if ($founder) {
+                    $founderKids[] = $tree;
+                }
+                if ($coFounder) {
+                    $coKids[] = $cloneTree($tree);
+                }
+                if (!$founder && !$coFounder) {
+                    $orphanRoots[] = $tree;
+                }
+            } elseif ($leader === 'founder' && $founder) {
                 $founderKids[] = $tree;
-                $attached[$id] = true;
             } elseif ($leader === 'co_founder' && $coFounder) {
                 $coKids[] = $tree;
-                $attached[$id] = true;
             } else {
                 $orphanRoots[] = $tree;
             }

@@ -51,7 +51,7 @@
   list-style: none; margin: 0; gap: 0;
 }
 .oc-tree { padding-top: 0; }
-.oc-tree-roots { padding-top: 0; gap: 8px; }
+.oc-tree-roots { padding-top: 0; gap: 48px; align-items: flex-start; }
 
 .oc-tree li {
   position: relative; padding: 28px 14px 0;

@@ -167,8 +167,8 @@ class DbSync
         );
         $log[] = 'ok · employee self-fill tables checked';
 
-        // Reporting person can be Founder / Co-Founder (Direct Owner) from org chart settings
-        $addColumn('employees', 'reporting_leader', "VARCHAR(20) NULL DEFAULT NULL COMMENT 'founder|co_founder' AFTER reporting_manager_id");
+        // Reporting person can be Founder / Co-Founder / both (Direct Owner) from org chart settings
+        $addColumn('employees', 'reporting_leader', "VARCHAR(20) NULL DEFAULT NULL COMMENT 'founder|co_founder|both' AFTER reporting_manager_id");
 
         // Birthday / anniversary wishes between employees
         $db->exec(

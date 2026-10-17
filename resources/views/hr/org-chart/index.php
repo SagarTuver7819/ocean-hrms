@@ -1,12 +1,13 @@
 <?php
 $fmtDate = static fn(?string $d) => $d ? date('d M Y', strtotime($d)) : '—';
-$renderNode = function (array $node, bool $leader = false, string $badge = '') use (&$renderNode, $fmtDate): void {
+$hideContact = !empty($isEmp);
+$renderNode = function (array $node, bool $leader = false, string $badge = '') use (&$renderNode, $fmtDate, $hideContact): void {
     $photo = !empty($node['profile_photo']) ? asset($node['profile_photo']) : null;
     $desig = $badge !== '' ? $badge : ($node['designation_name'] ?: 'Team Member');
     $dept = $node['department_name'] ?? '';
     $isCustomLeader = !empty($node['is_leader']);
     $childCount = count($node['children'] ?? []);
-    $canProfile = !$isCustomLeader && (can('employee.view') || can('*')) && !empty($node['id']);
+    $canProfile = !$isCustomLeader && !$hideContact && (can('employee.view') || can('*')) && !empty($node['id']);
     $profileUrl = $canProfile ? url('employees/' . $node['id']) : '';
 
     $popup = [
@@ -17,9 +18,9 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
         'code' => $node['employee_code'] ?? '',
         'role' => $desig,
         'department' => $dept,
-        'email' => $node['official_email'] ?? '',
-        'personal_email' => $node['personal_email'] ?? '',
-        'mobile' => $node['mobile'] ?? '',
+        'email' => $hideContact ? '' : ($node['official_email'] ?? ''),
+        'personal_email' => $hideContact ? '' : ($node['personal_email'] ?? ''),
+        'mobile' => $hideContact ? '' : ($node['mobile'] ?? ''),
         'type' => !empty($node['employment_type']) ? ucwords(str_replace('_', ' ', $node['employment_type'])) : '',
         'joining' => !empty($node['joining_date']) ? $fmtDate($node['joining_date']) : '',
         'location' => $node['work_location'] ?? '',
@@ -28,6 +29,7 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
         'reports' => $childCount,
         'profile' => $profileUrl,
         'is_leader' => $isCustomLeader ? 1 : 0,
+        'hide_contact' => $hideContact ? 1 : 0,
     ];
     ?>
     <li>
@@ -71,7 +73,9 @@ $hasTree = $hasLeaders || !empty($teamRoots);
 <div class="page-head">
   <div>
     <h1>Organization Chart</h1>
-    <p>Click any person for photo, office email, post &amp; details · <?= (int) ($empCount ?? 0) ?> active</p>
+    <p><?= !empty($isEmp)
+        ? 'Click any person for photo, post &amp; details'
+        : 'Click any person for photo, office email, post &amp; details' ?> · <?= (int) ($empCount ?? 0) ?> active</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
     <?php if (empty($isEmp)): ?>
@@ -161,9 +165,11 @@ $hasTree = $hasLeaders || !empty($teamRoots);
         <div class="oc-person-grid">
           <div><span>Department</span><b id="ocPmDept">—</b></div>
           <div><span>Post / Designation</span><b id="ocPmPost">—</b></div>
-          <div class="full"><span>Office Email</span><b id="ocPmEmail">—</b></div>
-          <div class="full"><span>Personal Email</span><b id="ocPmPersonal">—</b></div>
-          <div><span>Mobile</span><b id="ocPmMobile">—</b></div>
+          <?php if (empty($isEmp)): ?>
+          <div class="full oc-contact-row" id="ocPmEmailRow"><span>Office Email</span><b id="ocPmEmail">—</b></div>
+          <div class="full oc-contact-row" id="ocPmPersonalRow"><span>Personal Email</span><b id="ocPmPersonal">—</b></div>
+          <div class="oc-contact-row" id="ocPmMobileRow"><span>Mobile</span><b id="ocPmMobile">—</b></div>
+          <?php endif; ?>
           <div><span>Employment Type</span><b id="ocPmType">—</b></div>
           <div><span>Joining Date</span><b id="ocPmJoin">—</b></div>
           <div><span>Work Location</span><b id="ocPmLoc">—</b></div>
@@ -190,7 +196,7 @@ $hasTree = $hasLeaders || !empty($teamRoots);
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p class="small text-muted mb-3">These names appear as <b>Direct Owner</b> on the chart and in the employee Reporting Person list.</p>
+        <p class="small text-muted mb-3">These names appear as <b>Direct Owner</b> on the chart. On employee form, Reporting Person can be Founder, Co-Founder, or <b>Both Direct Owners</b> (shows under both).</p>
 
         <div class="mb-3">
           <label class="form-label">Founder name</label>
@@ -273,16 +279,17 @@ document.addEventListener('DOMContentLoaded', function () {
     set('ocPmCode', d.code ? d.code : '');
     set('ocPmDept', d.department);
     set('ocPmPost', d.role);
-    if (d.email) {
-      const a = document.createElement('a');
-      a.href = 'mailto:' + d.email;
-      a.textContent = d.email;
-      const emailEl = document.getElementById('ocPmEmail');
-      emailEl.textContent = '';
-      emailEl.appendChild(a);
-    } else set('ocPmEmail', '—');
-    set('ocPmPersonal', d.personal_email);
-    set('ocPmMobile', d.mobile);
+    if (!d.hide_contact) {
+      if (d.email) {
+        const a = document.createElement('a');
+        a.href = 'mailto:' + d.email;
+        a.textContent = d.email;
+        const emailEl = document.getElementById('ocPmEmail');
+        if (emailEl) { emailEl.textContent = ''; emailEl.appendChild(a); }
+      } else set('ocPmEmail', '—');
+      set('ocPmPersonal', d.personal_email);
+      set('ocPmMobile', d.mobile);
+    }
     set('ocPmType', d.type);
     set('ocPmJoin', d.joining);
     set('ocPmLoc', d.location);

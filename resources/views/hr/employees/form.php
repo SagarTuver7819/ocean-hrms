@@ -138,9 +138,12 @@ $tabs = [
               <?= $select('Designation', 'designation_id', $pairs($designations), $e['designation_id'] ?? '', ['search' => true]) ?>
               <?php
                 $reportCurrent = '';
-                if (($e['reporting_leader'] ?? '') === 'founder') {
+                $leader = (string) ($e['reporting_leader'] ?? '');
+                if ($leader === 'both') {
+                    $reportCurrent = '__both__';
+                } elseif ($leader === 'founder') {
                     $reportCurrent = '__founder__';
-                } elseif (($e['reporting_leader'] ?? '') === 'co_founder') {
+                } elseif ($leader === 'co_founder') {
                     $reportCurrent = '__co_founder__';
                 } elseif (!empty($e['reporting_manager_id'])) {
                     $reportCurrent = (string) $e['reporting_manager_id'];

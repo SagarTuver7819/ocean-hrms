@@ -410,12 +410,18 @@ class EmployeeController extends Controller
         ]);
     }
 
-    /** Reporting Person list: Direct Owner (Founder / Co-Founder) + employees */
+    /** Reporting Person list: Direct Owner (Founder / Co-Founder / Both) + employees */
     private function reportingOptions(?int $excludeEmployeeId = null): array
     {
         $options = [];
         $founder = trim((string) setting('org_founder_name', ''));
         $coFounder = trim((string) setting('org_co_founder_name', ''));
+        if ($founder !== '' && $coFounder !== '') {
+            $options[] = [
+                'id' => '__both__',
+                'name' => $founder . ' & ' . $coFounder . ' — Both Direct Owners',
+            ];
+        }
         if ($founder !== '') {
             $options[] = ['id' => '__founder__', 'name' => $founder . ' — Founder / Direct Owner'];
         }
@@ -478,7 +484,10 @@ class EmployeeController extends Controller
         }
 
         $report = (string) ($this->input('reporting_manager_id') ?? '');
-        if ($report === '__founder__') {
+        if ($report === '__both__') {
+            $data['reporting_manager_id'] = null;
+            $data['reporting_leader'] = 'both';
+        } elseif ($report === '__founder__') {
             $data['reporting_manager_id'] = null;
             $data['reporting_leader'] = 'founder';
         } elseif ($report === '__co_founder__') {

@@ -2,6 +2,7 @@
 $paid = $leaveBalances[0] ?? null;
 $present = rtrim(rtrim(number_format($monthStats['present'], 1), '0'), '.');
 ?>
+<div class="emp-dash">
 <div class="hero-card">
   <div class="hero-id">
     <?php if (!empty($employee['profile_photo'])): ?>
@@ -61,17 +62,17 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
 };
 ?>
 
-<div class="row g-3 dash-cards">
-  <div class="col-xl-6 col-lg-6">
-    <div class="ep-card cp tone-orange">
+<div class="row g-3 dash-cards dash-cards-equal">
+  <div class="col-lg-6 d-flex">
+    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100">
       <div class="ep-card-head">
         <span class="ep-card-ico"><i class="fa-solid fa-cake-candles"></i></span>
         <div><h3>Upcoming Birthdays</h3><small>Next 45 days · <?= count($birthdays ?? []) ?></small></div>
       </div>
       <?php if (empty($birthdays)): ?>
-        <div class="dash-empty"><i class="fa-solid fa-cake-candles"></i>No upcoming birthdays.</div>
+        <div class="dash-empty flex-grow-1"><i class="fa-solid fa-cake-candles"></i>No upcoming birthdays.</div>
       <?php else: ?>
-        <div class="dash-list celeb-list">
+        <div class="dash-list celeb-list flex-grow-1">
           <?php foreach ($birthdays as $b): ?>
             <div class="dash-item celeb-item <?= !empty($b['is_today']) ? 'is-today' : '' ?>">
               <?php if (!empty($b['profile_photo'])): ?>
@@ -91,16 +92,16 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
       <?php endif; ?>
     </div>
   </div>
-  <div class="col-xl-6 col-lg-6">
-    <div class="ep-card cp tone-orange">
+  <div class="col-lg-6 d-flex">
+    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100">
       <div class="ep-card-head">
         <span class="ep-card-ico"><i class="fa-solid fa-award"></i></span>
         <div><h3>Work Anniversaries</h3><small>Next 30 days · <?= count($anniversaries ?? []) ?></small></div>
       </div>
       <?php if (empty($anniversaries)): ?>
-        <div class="dash-empty"><i class="fa-solid fa-award"></i>No upcoming anniversaries.</div>
+        <div class="dash-empty flex-grow-1"><i class="fa-solid fa-award"></i>No upcoming anniversaries.</div>
       <?php else: ?>
-        <div class="dash-list celeb-list">
+        <div class="dash-list celeb-list flex-grow-1">
           <?php foreach ($anniversaries as $a): ?>
             <div class="dash-item celeb-item <?= !empty($a['is_today']) ? 'is-today' : '' ?>">
               <?php if (!empty($a['profile_photo'])): ?>
@@ -122,18 +123,18 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
   </div>
 </div>
 
-<div class="row g-3 dash-cards">
-  <div class="col-xl-5 col-lg-12">
-    <div class="ep-card cp tone-orange">
+<div class="row g-3 dash-cards dash-cards-equal mt-0">
+  <div class="col-xl-4 col-lg-4 d-flex">
+    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100">
       <div class="ep-card-head">
         <span class="ep-card-ico"><i class="fa-solid fa-calendar-check"></i></span>
         <div><h3>Recent Leave</h3><small>Your last 5 applications</small></div>
         <a href="<?= url('employee/leave') ?>" class="btn btn-sm btn-soft ms-auto">Apply / View</a>
       </div>
       <?php if (!$recentLeaves): ?>
-        <div class="dash-empty"><i class="fa-regular fa-calendar"></i>No leave applied yet.</div>
+        <div class="dash-empty flex-grow-1"><i class="fa-regular fa-calendar"></i>No leave applied yet.</div>
       <?php else: ?>
-        <div class="table-responsive">
+        <div class="dash-list flex-grow-1 table-responsive">
           <table class="table mb-0"><thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th></tr></thead>
           <tbody>
           <?php foreach ($recentLeaves as $l): ?>
@@ -149,42 +150,45 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
       <?php endif; ?>
     </div>
   </div>
-  <div class="col-xl-4 col-lg-6">
-    <div class="ep-card cp tone-orange">
+  <div class="col-xl-4 col-lg-4 d-flex">
+    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100">
       <div class="ep-card-head">
         <span class="ep-card-ico"><i class="fa-solid fa-bullhorn"></i></span>
         <div><h3>Announcements</h3><small>Latest company notices</small></div>
       </div>
       <?php if (!$announcements): ?>
-        <div class="dash-empty"><i class="fa-regular fa-bell"></i>No announcements.</div>
+        <div class="dash-empty flex-grow-1"><i class="fa-regular fa-bell"></i>No announcements.</div>
+      <?php else: ?>
+        <div class="dash-list flex-grow-1">
+          <?php foreach ($announcements as $a): ?>
+            <div class="dash-item">
+              <span class="di-ico t-orange"><i class="fa-solid fa-bullhorn"></i></span>
+              <div><b><?= e($a['title']) ?></b><p><?= nl2br(e($a['description'])) ?></p></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
       <?php endif; ?>
-      <div class="dash-list">
-        <?php foreach ($announcements as $a): ?>
-          <div class="dash-item">
-            <span class="di-ico t-orange"><i class="fa-solid fa-bullhorn"></i></span>
-            <div><b><?= e($a['title']) ?></b><p><?= nl2br(e($a['description'])) ?></p></div>
-          </div>
-        <?php endforeach; ?>
-      </div>
     </div>
   </div>
-  <div class="col-xl-3 col-lg-6">
-    <div class="ep-card cp tone-orange">
+  <div class="col-xl-4 col-lg-4 d-flex">
+    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100">
       <div class="ep-card-head">
         <span class="ep-card-ico"><i class="fa-solid fa-umbrella-beach"></i></span>
         <div><h3>Holidays</h3><small>Upcoming company holidays</small></div>
       </div>
       <?php if (!$holidays): ?>
-        <div class="dash-empty"><i class="fa-regular fa-calendar"></i>No upcoming holidays.</div>
+        <div class="dash-empty flex-grow-1"><i class="fa-regular fa-calendar"></i>No upcoming holidays.</div>
+      <?php else: ?>
+        <div class="dash-list flex-grow-1">
+          <?php foreach ($holidays as $h): $ts = strtotime($h['holiday_date']); ?>
+            <div class="dash-item">
+              <span class="di-date"><b><?= date('d', $ts) ?></b><?= date('M', $ts) ?></span>
+              <div><b><?= e($h['name']) ?></b><p><?= date('l', $ts) ?></p></div>
+            </div>
+          <?php endforeach; ?>
+        </div>
       <?php endif; ?>
-      <div class="dash-list">
-        <?php foreach ($holidays as $h): $ts = strtotime($h['holiday_date']); ?>
-          <div class="dash-item">
-            <span class="di-date"><b><?= date('d', $ts) ?></b><?= date('M', $ts) ?></span>
-            <div><b><?= e($h['name']) ?></b><p><?= date('l', $ts) ?></p></div>
-          </div>
-        <?php endforeach; ?>
-      </div>
     </div>
   </div>
 </div>
+</div><!-- /.emp-dash -->
