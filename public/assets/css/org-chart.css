@@ -53,6 +53,40 @@
 .oc-tree { padding-top: 0; }
 .oc-tree-roots { padding-top: 0; gap: 48px; align-items: flex-start; }
 
+/* Dual leadership: Founder + Co-Founder side-by-side, one shared team below */
+.oc-united {
+  display: inline-flex; flex-direction: column; align-items: center;
+  text-align: center; min-width: 100%;
+}
+.oc-dual {
+  display: flex; justify-content: center; align-items: flex-start;
+  gap: 36px; position: relative;
+  padding-bottom: 28px;
+}
+.oc-dual-side { position: relative; padding-bottom: 28px; }
+.oc-dual-side::after {
+  content: ''; position: absolute; left: 50%; bottom: 0;
+  width: 2px; height: 28px; margin-left: -1px;
+  background: #f0c78a;
+}
+.oc-dual::before {
+  content: ''; position: absolute; bottom: 0; height: 2px;
+  left: calc(50% - 18px - 90px);
+  width: calc(36px + 180px);
+  background: #f0c78a;
+}
+.oc-tree-shared {
+  position: relative;
+  padding-top: 28px;
+}
+.oc-tree-shared::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  width: 2px; height: 28px; margin-left: -1px;
+  background: #f0c78a;
+}
+.oc-tree-shared:has(> li:only-child)::before { display: none; }
+.oc-tree-shared > li:only-child::before { height: 28px; }
+
 .oc-tree li {
   position: relative; padding: 28px 14px 0;
   text-align: center; list-style: none;
@@ -150,6 +184,11 @@
   .oc-card.oc-leader { width: 148px; }
   .oc-meta b { font-size: 12px; }
   .oc-tree li { padding-left: 8px; padding-right: 8px; }
+  .oc-dual { gap: 20px; }
+  .oc-dual::before {
+    left: calc(50% - 10px - 74px);
+    width: calc(20px + 148px);
+  }
 }
 
 /* Person detail popup */

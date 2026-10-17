@@ -136,6 +136,7 @@ $router->post('/holidays/{id}/update', ['HolidayController', 'update'], ['AuthMi
 $router->post('/holidays/{id}/delete', ['HolidayController', 'destroy'], ['AuthMiddleware']);
 $router->get('/announcements', ['AnnouncementController', 'index'], ['AuthMiddleware']);
 $router->post('/announcements', ['AnnouncementController', 'store'], ['AuthMiddleware']);
+$router->get('/announcements/{id}', ['AnnouncementController', 'show'], ['AuthMiddleware']);
 $router->post('/announcements/{id}/update', ['AnnouncementController', 'update'], ['AuthMiddleware']);
 $router->post('/announcements/{id}/delete', ['AnnouncementController', 'destroy'], ['AuthMiddleware']);
 

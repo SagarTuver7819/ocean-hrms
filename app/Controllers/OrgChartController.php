@@ -174,12 +174,9 @@ class OrgChartController extends Controller
             return $node;
         };
 
-        $cloneTree = static function (array $node): array {
-            return json_decode(json_encode($node), true) ?: $node;
-        };
-
         $founderKids = [];
         $coKids = [];
+        $bothKids = [];
         $orphanRoots = [];
 
         foreach ($byId as $id => $e) {
@@ -190,16 +187,7 @@ class OrgChartController extends Controller
             $leader = (string) ($e['reporting_leader'] ?? '');
             $tree = $build($id);
             if ($leader === 'both') {
-                // Appear under Founder and Co-Founder
-                if ($founder) {
-                    $founderKids[] = $tree;
-                }
-                if ($coFounder) {
-                    $coKids[] = $cloneTree($tree);
-                }
-                if (!$founder && !$coFounder) {
-                    $orphanRoots[] = $tree;
-                }
+                $bothKids[] = $tree;
             } elseif ($leader === 'founder' && $founder) {
                 $founderKids[] = $tree;
             } elseif ($leader === 'co_founder' && $coFounder) {
@@ -209,29 +197,51 @@ class OrgChartController extends Controller
             }
         }
 
-        // Roots without Direct Owner → hang under Founder (or Co-Founder) so one connected chart
-        if ($founder) {
-            $founderKids = array_merge($founderKids, $orphanRoots);
+        // Dual leadership: Founder + Co-Founder side-by-side, one combined team below
+        $dualLeaders = $founder && $coFounder;
+        $sharedTeam = [];
+        if ($dualLeaders) {
+            $seen = [];
+            foreach (array_merge($bothKids, $founderKids, $coKids, $orphanRoots) as $tree) {
+                $tid = (int) ($tree['id'] ?? 0);
+                if ($tid > 0 && isset($seen[$tid])) {
+                    continue;
+                }
+                if ($tid > 0) {
+                    $seen[$tid] = true;
+                }
+                $sharedTeam[] = $tree;
+            }
+            usort($sharedTeam, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
             $orphanRoots = [];
-        } elseif ($coFounder) {
-            $coKids = array_merge($coKids, $orphanRoots);
-            $orphanRoots = [];
-        }
 
-        usort($founderKids, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
-        usort($coKids, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
-        usort($orphanRoots, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
-
-        if ($founder) {
-            $founder['children'] = $founderKids;
-        }
-        if ($coFounder) {
-            $coFounder['children'] = $coKids;
+            $founder['children'] = [];
+            $founder['reports_count'] = count($founderKids) + count($bothKids);
+            $coFounder['children'] = [];
+            $coFounder['reports_count'] = count($coKids) + count($bothKids);
+        } else {
+            // Single leader: hang orphans under that leader
+            if ($founder) {
+                $founderKids = array_merge($founderKids, $bothKids, $orphanRoots);
+                $orphanRoots = [];
+                usort($founderKids, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
+                $founder['children'] = $founderKids;
+            } elseif ($coFounder) {
+                $coKids = array_merge($coKids, $bothKids, $orphanRoots);
+                $orphanRoots = [];
+                usort($coKids, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
+                $coFounder['children'] = $coKids;
+            } else {
+                $orphanRoots = array_merge($bothKids, $orphanRoots);
+                usort($orphanRoots, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
+            }
         }
 
         return [
             'founder'        => $founder,
             'coFounder'      => $coFounder,
+            'sharedTeam'     => $sharedTeam,
+            'dualLeaders'    => $dualLeaders,
             'teamRoots'      => $orphanRoots, // only when no Founder/Co-Founder set
             'founderName'    => $founderName,
             'coFounderName'  => $coFounderName,

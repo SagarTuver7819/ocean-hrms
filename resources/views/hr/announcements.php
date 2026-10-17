@@ -41,6 +41,9 @@
             <td><span class="badge-status badge-<?= $item['status'] ? 'active' : 'inactive' ?>"><?= $item['status'] ? 'Active' : 'Inactive' ?></span></td>
             <td>
               <div class="action-btns">
+                <a href="<?= url('announcements/'.$item['id']) ?>" class="btn-icon" title="View on letterhead" target="_blank">
+                  <i class="fa-solid fa-eye"></i>
+                </a>
                 <button type="button" class="btn-icon" title="Edit"
                   data-bs-toggle="modal" data-bs-target="#annModal"
                   data-edit='<?= e(json_encode([

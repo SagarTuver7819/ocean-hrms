@@ -1,12 +1,16 @@
 <?php
 $fmtDate = static fn(?string $d) => $d ? date('d M Y', strtotime($d)) : '—';
 $hideContact = !empty($isEmp);
-$renderNode = function (array $node, bool $leader = false, string $badge = '') use (&$renderNode, $fmtDate, $hideContact): void {
+$dualLeaders = !empty($dualLeaders) && $founder && $coFounder;
+$sharedTeam = $sharedTeam ?? [];
+$renderCard = function (array $node, bool $leader = false, string $badge = '') use ($fmtDate, $hideContact): void {
     $photo = !empty($node['profile_photo']) ? asset($node['profile_photo']) : null;
     $desig = $badge !== '' ? $badge : ($node['designation_name'] ?: 'Team Member');
     $dept = $node['department_name'] ?? '';
     $isCustomLeader = !empty($node['is_leader']);
-    $childCount = count($node['children'] ?? []);
+    $childCount = array_key_exists('reports_count', $node)
+        ? (int) $node['reports_count']
+        : count($node['children'] ?? []);
     $canProfile = !$isCustomLeader && !$hideContact && (can('employee.view') || can('*')) && !empty($node['id']);
     $profileUrl = $canProfile ? url('employees/' . $node['id']) : '';
 
@@ -32,7 +36,6 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
         'hide_contact' => $hideContact ? 1 : 0,
     ];
     ?>
-    <li>
       <div class="oc-card <?= $leader || $isCustomLeader ? 'oc-leader' : '' ?> js-oc-card"
            role="button" tabindex="0"
            data-oc="<?= htmlspecialchars(json_encode($popup, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>"
@@ -56,6 +59,12 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
           <?php endif; ?>
         </div>
       </div>
+    <?php
+};
+$renderNode = function (array $node, bool $leader = false, string $badge = '') use (&$renderNode, $renderCard): void {
+    ?>
+    <li>
+      <?php $renderCard($node, $leader, $badge); ?>
       <?php if (!empty($node['children'])): ?>
         <ul>
           <?php foreach ($node['children'] as $child) {
@@ -67,7 +76,7 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
     <?php
 };
 $hasLeaders = $founder || $coFounder;
-$hasTree = $hasLeaders || !empty($teamRoots);
+$hasTree = $hasLeaders || !empty($teamRoots) || !empty($sharedTeam);
 ?>
 
 <div class="page-head">
@@ -115,7 +124,25 @@ $hasTree = $hasLeaders || !empty($teamRoots);
 
   <div class="oc-stage" id="ocStage">
     <div class="oc-scale" id="ocScale">
-      <?php if ($hasLeaders): ?>
+      <?php if ($dualLeaders): ?>
+        <div class="oc-united">
+          <div class="oc-dual">
+            <div class="oc-dual-side">
+              <?php $renderCard($founder, true, 'Founder / Direct Owner'); ?>
+            </div>
+            <div class="oc-dual-side">
+              <?php $renderCard($coFounder, true, 'Co-Founder / Direct Owner'); ?>
+            </div>
+          </div>
+          <?php if (!empty($sharedTeam)): ?>
+            <ul class="oc-tree oc-tree-shared">
+              <?php foreach ($sharedTeam as $n) {
+                  $renderNode($n);
+              } ?>
+            </ul>
+          <?php endif; ?>
+        </div>
+      <?php elseif ($hasLeaders): ?>
         <div class="oc-roots">
           <ul class="oc-tree oc-tree-roots">
             <?php if ($founder) {

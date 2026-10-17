@@ -57,6 +57,10 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
       margin: 0 0 3mm; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
       color: #9a5b00; font-weight: 800;
     }
+    .ocp-dual { display: flex; justify-content: center; margin-bottom: 2mm; }
+    .ocp-tree-dual { gap: 8mm; }
+    .ocp-tree-dual > li { padding-top: 0; }
+    .ocp-tree-dual > li::before, .ocp-tree-dual > li::after { display: none; }
 
     .ocp-tree, .ocp-tree ul {
       padding-top: 5mm; position: relative;
@@ -134,7 +138,32 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
     <span>Confidential · Internal use</span>
   </div>
 
-  <?php if ($founder || $coFounder): ?>
+  <?php
+    $dualLeaders = !empty($dualLeaders) && $founder && $coFounder;
+    $sharedTeam = $sharedTeam ?? [];
+  ?>
+  <?php if ($dualLeaders): ?>
+    <div class="ocp-sec">
+      <h5>Leadership</h5>
+      <div class="ocp-dual">
+        <?php
+          $f = $founder; $f['children'] = [];
+          $c = $coFounder; $c['children'] = [];
+        ?>
+        <ul class="ocp-tree ocp-tree-dual">
+          <?php $renderNode($f, true, 'Founder'); ?>
+          <?php $renderNode($c, true, 'Co-Founder'); ?>
+        </ul>
+      </div>
+      <?php if (!empty($sharedTeam)): ?>
+        <ul class="ocp-tree">
+          <?php foreach ($sharedTeam as $n) {
+              $renderNode($n);
+          } ?>
+        </ul>
+      <?php endif; ?>
+    </div>
+  <?php elseif ($founder || $coFounder): ?>
     <div class="ocp-sec">
       <h5>Leadership</h5>
       <ul class="ocp-tree">
@@ -148,7 +177,7 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
     </div>
   <?php endif; ?>
 
-  <?php if ($teamRoots): ?>
+  <?php if (!$dualLeaders && $teamRoots): ?>
     <div class="ocp-sec">
       <h5>Employees</h5>
       <ul class="ocp-tree">
@@ -159,7 +188,7 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
     </div>
   <?php endif; ?>
 
-  <?php if (!$founder && !$coFounder && !$teamRoots): ?>
+  <?php if (!$founder && !$coFounder && !$teamRoots && empty($sharedTeam)): ?>
     <p class="ocp-note">No organization data available.</p>
   <?php else: ?>
     <p class="ocp-note">Printed on <?= e($company) ?> letterhead from Ocean HRMS.</p>

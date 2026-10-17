@@ -162,13 +162,13 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
       <?php else: ?>
         <div class="dash-list flex-grow-1">
           <?php foreach ($announcements as $a): ?>
-            <div class="dash-item">
+            <a href="<?= url('announcements/' . $a['id']) ?>" class="dash-item text-decoration-none">
               <span class="di-ico"><i class="fa-solid fa-bullhorn"></i></span>
               <div class="min-w-0">
                 <b><?= e($a['title']) ?></b>
                 <p class="dash-clamp"><?= e(mb_strimwidth((string) preg_replace('/\s+/', ' ', strip_tags((string) ($a['description'] ?? ''))), 0, 140, '…')) ?></p>
               </div>
-            </div>
+            </a>
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
