@@ -185,6 +185,21 @@
     return body;
   }
 
+  function pageHasContent(sheet) {
+    var b = sheet && sheet.querySelector('.page-body');
+    return !!(b && b.children.length);
+  }
+
+  /** Remove empty letterhead-only sheets (middle or trailing). */
+  function pruneEmptyPages() {
+    for (var i = pages.length - 1; i >= 0; i--) {
+      if (pageHasContent(pages[i])) continue;
+      if (pages.length <= 1) break;
+      pages[i].remove();
+      pages.splice(i, 1);
+    }
+  }
+
   function paginate() {
     root.style.setProperty('--top', cfg.top.toFixed(1) + 'mm');
     root.style.setProperty('--bottom', cfg.bottom.toFixed(1) + 'mm');
@@ -212,20 +227,19 @@
           carry.unshift(body.lastElementChild);
           body.lastElementChild.remove();
         }
-        body = newPage();
-        carry.forEach(function (c) { body.appendChild(c); });
-        body.appendChild(block);
+        // If current page became empty after carrying, reuse it instead of creating a blank sheet
+        if (!body.children.length) {
+          carry.forEach(function (c) { body.appendChild(c); });
+          body.appendChild(block);
+        } else {
+          body = newPage();
+          carry.forEach(function (c) { body.appendChild(c); });
+          body.appendChild(block);
+        }
       }
     });
 
-    // Drop trailing empty sheets (letterhead only — no body content)
-    while (pages.length > 1) {
-      var last = pages[pages.length - 1];
-      var lastBody = last.querySelector('.page-body');
-      if (lastBody && lastBody.children.length) break;
-      last.remove();
-      pages.pop();
-    }
+    pruneEmptyPages();
 
     pages.forEach(function (sheet, i) {
       var no = document.createElement('div');

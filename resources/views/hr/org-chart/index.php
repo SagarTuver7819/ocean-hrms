@@ -135,6 +135,7 @@ $hasTree = $hasLeaders || !empty($teamRoots) || !empty($sharedTeam);
             </div>
           </div>
           <?php if (!empty($sharedTeam)): ?>
+            <div class="oc-stem" aria-hidden="true"></div>
             <ul class="oc-tree oc-tree-shared">
               <?php foreach ($sharedTeam as $n) {
                   $renderNode($n);

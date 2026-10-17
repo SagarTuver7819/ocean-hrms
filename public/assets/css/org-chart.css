@@ -1,5 +1,7 @@
 /* Organization Chart — Ocean Infotech */
 .oc-wrap {
+  --oc-line: #e8b86a;
+  --oc-gap: 26px;
   background:
     radial-gradient(900px 320px at 50% 0%, rgba(245, 160, 27, 0.08), transparent 60%),
     linear-gradient(180deg, #fffdf9, #fff);
@@ -7,7 +9,7 @@
   border-radius: 18px;
   padding: 14px 12px 28px;
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(16,24,40,.04));
-  overflow: hidden;
+  overflow: auto;
 }
 .oc-toolbar {
   display: flex; flex-wrap: wrap; gap: 10px;
@@ -22,7 +24,7 @@
 
 .oc-stage {
   min-height: 360px; max-height: calc(100vh - 240px);
-  overflow: auto; padding: 20px 16px 40px;
+  overflow: auto; padding: 20px 16px 48px;
   scrollbar-width: thin;
 }
 .oc-scale {
@@ -45,80 +47,162 @@
 .oc-empty b { display: block; color: #211F23; font-size: 16px; margin-bottom: 6px; }
 .oc-empty p { margin: 0; font-size: 13px; font-weight: 600; }
 
-.oc-tree, .oc-tree ul {
-  padding-top: 28px; position: relative;
-  display: flex; justify-content: center; align-items: flex-start;
-  list-style: none; margin: 0; gap: 0;
-}
-.oc-tree { padding-top: 0; }
-.oc-tree-roots { padding-top: 0; gap: 48px; align-items: flex-start; }
-
-/* Dual leadership: Founder + Co-Founder side-by-side, one shared team below */
-.oc-united {
-  display: inline-flex; flex-direction: column; align-items: center;
-  text-align: center; min-width: 100%;
-}
-.oc-dual {
-  display: flex; justify-content: center; align-items: flex-start;
-  gap: 36px; position: relative;
-  padding-bottom: 28px;
-}
-.oc-dual-side { position: relative; padding-bottom: 28px; }
-.oc-dual-side::after {
-  content: ''; position: absolute; left: 50%; bottom: 0;
-  width: 2px; height: 28px; margin-left: -1px;
-  background: #f0c78a;
-}
-.oc-dual::before {
-  content: ''; position: absolute; bottom: 0; height: 2px;
-  left: calc(50% - 18px - 90px);
-  width: calc(36px + 180px);
-  background: #f0c78a;
-}
-.oc-tree-shared {
+/* ---------- Tree connectors ---------- */
+.oc-tree,
+.oc-tree ul {
   position: relative;
-  padding-top: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0;
 }
-.oc-tree-shared::before {
-  content: ''; position: absolute; top: 0; left: 50%;
-  width: 2px; height: 28px; margin-left: -1px;
-  background: #f0c78a;
+.oc-tree ul {
+  padding-top: var(--oc-gap);
+  width: 100%;
 }
-.oc-tree-shared:has(> li:only-child)::before { display: none; }
-.oc-tree-shared > li:only-child::before { height: 28px; }
 
 .oc-tree li {
-  position: relative; padding: 28px 14px 0;
-  text-align: center; list-style: none;
+  position: relative;
+  padding: var(--oc-gap) 12px 0;
+  text-align: center;
+  list-style: none;
 }
 
-/* Vertical line down to card — centered with -1px for 2px stroke */
+/* Vertical drop onto each card */
 .oc-tree li::before {
-  content: ''; position: absolute; top: 0; left: 50%;
-  width: 2px; height: 28px; margin-left: -1px;
-  background: #f0c78a;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: var(--oc-gap);
+  margin-left: -1px;
+  background: var(--oc-line);
+  z-index: 0;
 }
-/* Horizontal bar across siblings */
+
+/* Horizontal sibling bar */
 .oc-tree li::after {
-  content: ''; position: absolute; top: 0; left: 0; right: 0;
-  height: 2px; background: #f0c78a;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--oc-line);
+  z-index: 0;
 }
+
+/* Top-level roots have no parent line; nested children always connect */
 .oc-tree > li::before,
 .oc-tree > li::after { display: none; }
-.oc-tree li:only-child::after { display: none; }
-.oc-tree li:first-child::after { left: 50%; }
-.oc-tree li:last-child::after { right: 50%; }
+.oc-tree ul > li::before,
+.oc-tree ul > li::after { display: block; }
 
-/* Drop from parent card to sibling bar */
+.oc-tree li:only-child::after { display: none !important; }
+.oc-tree li:first-child:not(:only-child)::after { left: 50%; }
+.oc-tree li:last-child:not(:only-child)::after { right: 50%; }
+
+/* Drop from parent card center down to sibling bar */
 .oc-tree ul::before {
-  content: ''; position: absolute; top: 0; left: 50%;
-  width: 2px; height: 28px; margin-left: -1px;
-  background: #f0c78a;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: var(--oc-gap);
+  margin-left: -1px;
+  background: var(--oc-line);
+  z-index: 0;
 }
-/* Single child: only one continuous vertical (avoid double offset lines) */
-.oc-tree ul:has(> li:only-child)::before { display: none; }
-.oc-tree li:only-child::before { height: 28px; }
 
+/* One child: single continuous vertical (no double line) */
+.oc-tree ul:has(> li:only-child)::before { display: none; }
+.oc-tree ul > li:only-child::before { height: var(--oc-gap); }
+
+/* ---------- Dual leadership + shared team ---------- */
+.oc-united {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 100%;
+}
+.oc-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  position: relative;
+  padding-bottom: var(--oc-gap);
+  z-index: 1;
+}
+.oc-dual-side {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+/* Vertical from each leader down to the join bar */
+.oc-dual-side::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 2px;
+  height: var(--oc-gap);
+  margin-left: -1px;
+  background: var(--oc-line);
+}
+/* Horizontal bar between the two leaders (25% = column centers) */
+.oc-dual::before {
+  content: '';
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  bottom: 0;
+  height: 2px;
+  background: var(--oc-line);
+}
+/* Center stem from dual join down into shared team */
+.oc-stem {
+  width: 2px;
+  height: var(--oc-gap);
+  margin: 0 auto;
+  background: var(--oc-line);
+  flex-shrink: 0;
+}
+
+/* Shared team sits under dual — treat as children (show connectors) */
+.oc-tree-shared {
+  padding-top: 0;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.oc-tree-shared > li::before,
+.oc-tree-shared > li::after {
+  display: block !important;
+}
+.oc-tree-shared > li:only-child::after { display: none !important; }
+.oc-tree-shared > li:first-child:not(:only-child)::after { left: 50%; }
+.oc-tree-shared > li:last-child:not(:only-child)::after { right: 50%; }
+/* Stem already drawn by .oc-stem — don't double the first drop when many kids */
+.oc-tree-shared::before { display: none; }
+.oc-tree-shared > li { padding-top: var(--oc-gap); }
+.oc-tree-shared > li:only-child::before {
+  /* continuous from stem through to single root child */
+  height: var(--oc-gap);
+}
+
+.oc-tree-roots { padding-top: 0; gap: 48px; align-items: flex-start; }
+.oc-roots { text-align: center; padding-top: 8px; }
+
+/* ---------- Cards ---------- */
 .oc-card {
   display: inline-flex; flex-direction: column; align-items: center;
   width: 156px; padding: 14px 12px 14px;
@@ -174,8 +258,6 @@
   font-size: 10px; font-weight: 800;
 }
 
-.oc-roots { text-align: center; padding-top: 8px; }
-
 @media (max-width: 768px) {
   .oc-stage { max-height: none; padding: 12px 6px 28px; }
   .oc-card { width: 132px; padding: 10px 8px; }
@@ -184,11 +266,8 @@
   .oc-card.oc-leader { width: 148px; }
   .oc-meta b { font-size: 12px; }
   .oc-tree li { padding-left: 8px; padding-right: 8px; }
-  .oc-dual { gap: 20px; }
-  .oc-dual::before {
-    left: calc(50% - 10px - 74px);
-    width: calc(20px + 148px);
-  }
+  .oc-dual { gap: 24px; }
+  .oc-wrap { --oc-gap: 22px; }
 }
 
 /* Person detail popup */
@@ -231,7 +310,7 @@
 
 @media print {
   .sidebar, .topbar, .app-footer, .page-head, .oc-toolbar, .modal, .alert { display: none !important; }
-  .oc-wrap { border: 0; box-shadow: none; background: #fff; }
+  .oc-wrap { border: 0; box-shadow: none; background: #fff; overflow: visible; }
   .oc-scale { transform: none !important; }
   .oc-stage { max-height: none; overflow: visible; }
 }
