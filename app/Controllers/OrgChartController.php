@@ -22,10 +22,14 @@ class OrgChartController extends Controller
         $this->view('hr/org-chart/index', $data);
     }
 
-    /** Printable A4 on Ocean Infotech letterhead */
+    /** Printable A4 on Ocean Infotech letterhead (HR / admin only) */
     public function print(): void
     {
         $this->guardView();
+        if (Auth::isEmployeePortal()) {
+            $this->flash('error', 'Print is not available on employee portal.');
+            $this->redirect('org-chart');
+        }
         $data = $this->chartData();
         $data['letterhead'] = Letterhead::config();
         $data['backUrl'] = url('org-chart');
@@ -92,26 +96,50 @@ class OrgChartController extends Controller
         $founderPhoto = trim((string) setting('org_founder_photo', ''));
         $coFounderPhoto = trim((string) setting('org_co_founder_photo', ''));
 
-        $founder = $founderName !== '' ? $this->leaderNode($founderName, 'Founder', $founderPhoto) : null;
-        $coFounder = $coFounderName !== '' ? $this->leaderNode($coFounderName, 'Co-Founder', $coFounderPhoto) : null;
+        $founder = $founderName !== '' ? $this->leaderNode($founderName, 'Founder / Direct Owner', $founderPhoto) : null;
+        $coFounder = $coFounderName !== '' ? $this->leaderNode($coFounderName, 'Co-Founder / Direct Owner', $coFounderPhoto) : null;
 
+        $hasLeaderCol = (bool) $db->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employees' AND COLUMN_NAME = 'reporting_leader'"
+        )->fetchColumn();
+
+        $leaderCol = $hasLeaderCol ? 'e.reporting_leader' : 'NULL';
         $employees = $db->query(
             "SELECT e.id, e.employee_code, e.first_name, e.middle_name, e.last_name, e.profile_photo,
-                    e.reporting_manager_id, e.status,
-                    g.name AS designation_name, d.name AS department_name
+                    e.reporting_manager_id, {$leaderCol} AS reporting_leader, e.status, e.employment_type,
+                    e.mobile, e.official_email, e.personal_email, e.joining_date, e.work_location,
+                    g.name AS designation_name, d.name AS department_name,
+                    CONCAT(m.first_name, ' ', m.last_name) AS manager_name,
+                    CASE
+                      WHEN {$leaderCol} = 'founder' THEN CONCAT(COALESCE(NULLIF(sf.setting_value, ''), 'Founder'), ' (Direct Owner)')
+                      WHEN {$leaderCol} = 'co_founder' THEN CONCAT(COALESCE(NULLIF(scf.setting_value, ''), 'Co-Founder'), ' (Direct Owner)')
+                      ELSE NULL
+                    END AS leader_manager_name
              FROM employees e
              LEFT JOIN designations g ON g.id = e.designation_id
              LEFT JOIN departments d ON d.id = e.department_id
+             LEFT JOIN employees m ON m.id = e.reporting_manager_id
+             LEFT JOIN settings sf ON sf.setting_key = 'org_founder_name'
+             LEFT JOIN settings scf ON scf.setting_key = 'org_co_founder_name'
              WHERE e.status NOT IN ('inactive','resigned','draft')
              ORDER BY e.first_name, e.last_name"
         )->fetchAll();
 
         $byId = [];
         foreach ($employees as $e) {
-            $e['full_name'] = trim(($e['first_name'] ?? '') . ' ' . ($e['last_name'] ?? ''));
+            $e['full_name'] = trim(($e['first_name'] ?? '') . ' ' . ($e['middle_name'] ?? '') . ' ' . ($e['last_name'] ?? ''));
+            $e['full_name'] = preg_replace('/\s+/', ' ', $e['full_name']);
             $e['initials'] = mb_strtoupper(mb_substr($e['first_name'] ?? '?', 0, 1) . mb_substr($e['last_name'] ?? '', 0, 1));
             $e['children'] = [];
             $e['is_leader'] = false;
+            if (!empty($e['leader_manager_name'])) {
+                $e['reports_to'] = $e['leader_manager_name'];
+            } elseif (!empty(trim((string) ($e['manager_name'] ?? '')))) {
+                $e['reports_to'] = trim($e['manager_name']);
+            } else {
+                $e['reports_to'] = '';
+            }
             $byId[(int) $e['id']] = $e;
         }
 
@@ -138,24 +166,58 @@ class OrgChartController extends Controller
             return $node;
         };
 
-        $teamRoots = [];
+        $attached = [];
+        $founderKids = [];
+        $coKids = [];
+        $orphanRoots = [];
+
         foreach ($byId as $id => $e) {
             $mgr = (int) ($e['reporting_manager_id'] ?? 0);
             if ($mgr > 0 && isset($byId[$mgr])) {
-                continue;
+                continue; // not a root — sits under another employee
             }
-            $teamRoots[] = $build($id);
+            $leader = (string) ($e['reporting_leader'] ?? '');
+            $tree = $build($id);
+            if ($leader === 'founder' && $founder) {
+                $founderKids[] = $tree;
+                $attached[$id] = true;
+            } elseif ($leader === 'co_founder' && $coFounder) {
+                $coKids[] = $tree;
+                $attached[$id] = true;
+            } else {
+                $orphanRoots[] = $tree;
+            }
         }
-        usort($teamRoots, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
+
+        // Roots without Direct Owner → hang under Founder (or Co-Founder) so one connected chart
+        if ($founder) {
+            $founderKids = array_merge($founderKids, $orphanRoots);
+            $orphanRoots = [];
+        } elseif ($coFounder) {
+            $coKids = array_merge($coKids, $orphanRoots);
+            $orphanRoots = [];
+        }
+
+        usort($founderKids, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
+        usort($coKids, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
+        usort($orphanRoots, fn($a, $b) => strcasecmp($a['full_name'], $b['full_name']));
+
+        if ($founder) {
+            $founder['children'] = $founderKids;
+        }
+        if ($coFounder) {
+            $coFounder['children'] = $coKids;
+        }
 
         return [
             'founder'        => $founder,
             'coFounder'      => $coFounder,
-            'teamRoots'      => $teamRoots,
+            'teamRoots'      => $orphanRoots, // only when no Founder/Co-Founder set
             'founderName'    => $founderName,
             'coFounderName'  => $coFounderName,
             'founderPhoto'   => $founderPhoto,
             'coFounderPhoto' => $coFounderPhoto,
+            'empCount'       => count($byId),
         ];
     }
 

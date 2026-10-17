@@ -361,19 +361,31 @@ $(function () {
     if (this.value !== '') $('.js-shift-pick').val(this.value);
   });
 
-  /* ---------- Leave form: live working-day count ---------- */
+  /* ---------- Leave form: Full Day / Half Day + live day count ---------- */
   const $leaveForm = $('#leaveForm');
   const leaveDays = function () {
-    const from = $leaveForm.find('[name=from_date]').val(), to = $leaveForm.find('[name=to_date]').val();
-    const $half = $leaveForm.find('[name=half_day]');
-    $half.closest('.form-check').toggleClass('d-none', !from || from !== to);
+    const from = $leaveForm.find('[name=from_date]').val();
+    const to = $leaveForm.find('[name=to_date]').val();
+    const sameDay = !!(from && to && from === to);
+    const $half = $leaveForm.find('[name=leave_duration][value=half]');
+    const $full = $leaveForm.find('[name=leave_duration][value=full]');
+    const $hint = $('#leaveDurationHint');
+    $half.prop('disabled', !sameDay);
+    $leaveForm.find('.leave-duration-pick').has('[value=half]').toggleClass('is-disabled', !sameDay);
+    if (!sameDay && $half.is(':checked')) $full.prop('checked', true);
+    if ($hint.length) {
+      $hint.text(sameDay
+        ? 'Choose Full Day (1) or Half Day (0.5) for this date.'
+        : 'Multi-day leave is always Full Day. Set same From & To date for Half Day.');
+    }
     if (!from || !to) return $('#leaveDays').text('Select dates to see leave days');
-    $.getJSON($leaveForm.data('days-url'), { from: from, to: to, half_day: $half.is(':checked') ? 1 : 0 }, function (r) {
+    const half = sameDay && $leaveForm.find('[name=leave_duration]:checked').val() === 'half' ? 1 : 0;
+    $.getJSON($leaveForm.data('days-url'), { from: from, to: to, half_day: half }, function (r) {
       $('#leaveDays').html(r.message);
     });
   };
   if ($leaveForm.length) {
-    $leaveForm.on('change', '[name=from_date], [name=to_date], [name=half_day]', function () {
+    $leaveForm.on('change', '[name=from_date], [name=to_date], [name=leave_duration]', function () {
       const $to = $leaveForm.find('[name=to_date]'), from = $leaveForm.find('[name=from_date]').val();
       if (from && (!$to.val() || $to.val() < from)) $to.val(from);
       $to.attr('min', from);

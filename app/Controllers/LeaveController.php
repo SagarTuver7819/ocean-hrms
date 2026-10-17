@@ -64,12 +64,16 @@ class LeaveController extends Controller
         if (!$empId || !strtotime($from) || !strtotime($to) || $to < $from) {
             $this->json(['days' => 0, 'message' => 'Select a valid date range']);
         }
-        $days = Leave::countDays($empId, $from, $to, (bool) $this->input('half_day'));
+        $half = $this->wantsHalfDay($from, $to);
+        $days = Leave::countDays($empId, $from, $to, $half);
         $span = (int) ((strtotime($to) - strtotime($from)) / 86400) + 1;
         $skipped = $span - count(Leave::workingDates($empId, $from, $to));
+        $label = $half
+            ? 'Half Day · 0.5 leave day'
+            : ($days . ' Full Day leave' . ($days == 1 ? '' : 's'));
         $this->json([
             'days' => $days,
-            'message' => '<i class="fa-solid fa-calendar-day me-1"></i>' . $days . ' leave day' . ($days == 1 ? '' : 's')
+            'message' => '<i class="fa-solid fa-calendar-day me-1"></i>' . $label
                 . ($skipped ? ' <small class="fw-semibold">(' . $skipped . ' week-off / holiday skipped)</small>' : ''),
         ]);
     }
@@ -95,7 +99,12 @@ class LeaveController extends Controller
             $this->redirect($back);
         }
 
-        $days = Leave::countDays($empId, $from, $to, (bool) $this->input('half_day'));
+        $half = $this->wantsHalfDay($from, $to);
+        if ($half && $from !== $to) {
+            $this->flash('error', 'Half Day leave requires the same From and To date.');
+            $this->redirect($back);
+        }
+        $days = Leave::countDays($empId, $from, $to, $half);
         if ($days <= 0) {
             $this->flash('error', 'The selected dates are all weekly offs or holidays — no leave needed.');
             $this->redirect($back);
@@ -132,10 +141,24 @@ class LeaveController extends Controller
 
         $name = (string) Database::value("SELECT CONCAT(first_name, ' ', last_name) FROM employees WHERE id = ?", [$empId]);
         $dates = $from === $to ? date('d M', strtotime($from)) : date('d M', strtotime($from)) . ' – ' . date('d M', strtotime($to));
-        notify_hr('Leave request · ' . $name, $name . ' applied for ' . $days . ' day(s) ' . $type['name'] . ' (' . $dates . ').', 'leave?status=pending');
+        $dur = $half ? 'Half Day (0.5)' : ($days . ' Full Day');
+        notify_hr('Leave request · ' . $name, $name . ' applied for ' . $dur . ' · ' . $type['name'] . ' (' . $dates . ').', 'leave?status=pending');
         activity_log('leave', 'applied', $requestId);
-        $this->flash('success', 'Leave request for ' . $days . ' day(s) submitted. HR has been notified.');
+        $this->flash('success', 'Leave request submitted · ' . $dur . '. HR has been notified.');
         $this->redirect($back);
+    }
+
+    private function wantsHalfDay(string $from, string $to): bool
+    {
+        $duration = strtolower((string) $this->input('leave_duration', ''));
+        if ($duration === 'half') {
+            return $from === $to;
+        }
+        if ($duration === 'full') {
+            return false;
+        }
+        // Legacy checkbox support
+        return $from === $to && (bool) $this->input('half_day');
     }
 
     public function cancel(string $id): void

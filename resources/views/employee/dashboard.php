@@ -37,6 +37,91 @@ $present = rtrim(rtrim(number_format($monthStats['present'], 1), '0'), '.');
   <a href="<?= url('employee/profile') ?>"><span class="t-orange"><i class="fa-solid fa-user"></i></span>My Profile</a>
 </div>
 
+<?php
+$wishedBirthday = $wishedBirthday ?? [];
+$wishedAnniv = $wishedAnniv ?? [];
+$myEmpId = (int) ($myEmpId ?? 0);
+$wishBtn = static function (array $person, string $type, array $already, int $me): string {
+    $id = (int) $person['id'];
+    if ($id === $me) {
+        return '<span class="wish-chip is-you">You</span>';
+    }
+    if (!empty($person['is_today']) || (int) ($person['in_days'] ?? 99) <= 7) {
+        if (in_array($id, $already, true)) {
+            return '<span class="wish-chip is-sent"><i class="fa-solid fa-check"></i> Wished</span>';
+        }
+        return '<form method="post" action="' . e(url('employee/wish')) . '" class="d-inline">'
+            . csrf_field()
+            . '<input type="hidden" name="to_employee_id" value="' . $id . '">'
+            . '<input type="hidden" name="wish_type" value="' . e($type) . '">'
+            . '<button type="submit" class="wish-btn" title="Send wish"><i class="fa-solid fa-gift"></i> Wish</button>'
+            . '</form>';
+    }
+    return '';
+};
+?>
+
+<div class="row g-3 dash-cards">
+  <div class="col-xl-6 col-lg-6">
+    <div class="ep-card cp tone-orange">
+      <div class="ep-card-head">
+        <span class="ep-card-ico"><i class="fa-solid fa-cake-candles"></i></span>
+        <div><h3>Upcoming Birthdays</h3><small>Next 45 days · <?= count($birthdays ?? []) ?></small></div>
+      </div>
+      <?php if (empty($birthdays)): ?>
+        <div class="dash-empty"><i class="fa-solid fa-cake-candles"></i>No upcoming birthdays.</div>
+      <?php else: ?>
+        <div class="dash-list celeb-list">
+          <?php foreach ($birthdays as $b): ?>
+            <div class="dash-item celeb-item <?= !empty($b['is_today']) ? 'is-today' : '' ?>">
+              <?php if (!empty($b['profile_photo'])): ?>
+                <span class="celeb-av has-photo"><img src="<?= asset($b['profile_photo']) ?>" alt=""></span>
+              <?php else: ?>
+                <span class="celeb-av"><?= e(strtoupper(substr($b['first_name'], 0, 1) . substr($b['last_name'] ?? '', 0, 1))) ?></span>
+              <?php endif; ?>
+              <div class="flex-grow-1 min-w-0">
+                <b><?= e($b['first_name'] . ' ' . $b['last_name']) ?></b>
+                <p><?= e($b['designation_name'] ?? $b['department_name'] ?? $b['employee_code']) ?>
+                  · <?= !empty($b['is_today']) ? 'Today 🎂' : 'In ' . (int) $b['in_days'] . 'd · ' . date('d M', strtotime($b['next_date'])) ?></p>
+              </div>
+              <?= $wishBtn($b, 'birthday', $wishedBirthday, $myEmpId) ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+  <div class="col-xl-6 col-lg-6">
+    <div class="ep-card cp tone-orange">
+      <div class="ep-card-head">
+        <span class="ep-card-ico"><i class="fa-solid fa-award"></i></span>
+        <div><h3>Work Anniversaries</h3><small>Next 30 days · <?= count($anniversaries ?? []) ?></small></div>
+      </div>
+      <?php if (empty($anniversaries)): ?>
+        <div class="dash-empty"><i class="fa-solid fa-award"></i>No upcoming anniversaries.</div>
+      <?php else: ?>
+        <div class="dash-list celeb-list">
+          <?php foreach ($anniversaries as $a): ?>
+            <div class="dash-item celeb-item <?= !empty($a['is_today']) ? 'is-today' : '' ?>">
+              <?php if (!empty($a['profile_photo'])): ?>
+                <span class="celeb-av has-photo"><img src="<?= asset($a['profile_photo']) ?>" alt=""></span>
+              <?php else: ?>
+                <span class="celeb-av"><?= e(strtoupper(substr($a['first_name'], 0, 1) . substr($a['last_name'] ?? '', 0, 1))) ?></span>
+              <?php endif; ?>
+              <div class="flex-grow-1 min-w-0">
+                <b><?= e($a['first_name'] . ' ' . $a['last_name']) ?></b>
+                <p><?= (int) $a['years'] ?> yr · <?= e($a['department_name'] ?? '') ?>
+                  · <?= !empty($a['is_today']) ? 'Today 🎉' : 'In ' . (int) $a['in_days'] . 'd' ?></p>
+              </div>
+              <?= $wishBtn($a, 'anniversary', $wishedAnniv, $myEmpId) ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+</div>
+
 <div class="row g-3 dash-cards">
   <div class="col-xl-5 col-lg-12">
     <div class="ep-card cp tone-orange">

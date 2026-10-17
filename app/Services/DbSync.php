@@ -170,6 +170,22 @@ class DbSync
         // Reporting person can be Founder / Co-Founder (Direct Owner) from org chart settings
         $addColumn('employees', 'reporting_leader', "VARCHAR(20) NULL DEFAULT NULL COMMENT 'founder|co_founder' AFTER reporting_manager_id");
 
+        // Birthday / anniversary wishes between employees
+        $db->exec(
+            "CREATE TABLE IF NOT EXISTS employee_wishes (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                from_employee_id INT UNSIGNED NOT NULL,
+                to_employee_id INT UNSIGNED NOT NULL,
+                wish_type ENUM('birthday','anniversary') NOT NULL,
+                wish_date DATE NOT NULL,
+                created_at DATETIME NULL,
+                UNIQUE KEY uniq_wish (from_employee_id, to_employee_id, wish_type, wish_date),
+                KEY to_emp (to_employee_id),
+                KEY wish_date (wish_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $log[] = 'ok · employee_wishes table checked';
+
         // Org chart: Founder / Co-Founder (manual names + photos in settings)
         $orgDefaults = [
             'org_founder_name' => '',
@@ -194,7 +210,7 @@ class DbSync
             $log[] = 'skip · uploads/org exists';
         }
 
-        $syncVersion = '2026-10-17-reporting-leader-photos-v1';
+        $syncVersion = '2026-10-17-employee-wishes-v1';
         $db->prepare(
             "INSERT INTO settings (setting_key, setting_value, updated_at) VALUES ('db_sync_version', ?, NOW())
              ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()"

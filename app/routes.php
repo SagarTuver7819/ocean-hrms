@@ -141,6 +141,7 @@ $router->post('/announcements/{id}/delete', ['AnnouncementController', 'destroy'
 
 // Employee portal
 $router->get('/employee/dashboard', ['EmployeePortalController', 'dashboard'], ['AuthMiddleware']);
+$router->post('/employee/wish', ['EmployeePortalController', 'wish'], ['AuthMiddleware']);
 $router->get('/employee/profile', ['EmployeePortalController', 'profile'], ['AuthMiddleware']);
 $router->post('/employee/photo', ['EmployeePortalController', 'photo'], ['AuthMiddleware']);
 $router->post('/employee/photo/remove', ['EmployeePortalController', 'removePhoto'], ['AuthMiddleware']);

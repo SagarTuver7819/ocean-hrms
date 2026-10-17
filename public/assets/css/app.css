@@ -1338,6 +1338,24 @@ a.code-pill:hover { background: var(--brand); color: #fff; }
 .leave-card .lc-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #F5A01B, #d4890f); }
 .leave-card .lc-meta { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
 .leave-days-preview { padding: 10px 12px; border-radius: 12px; background: #fff7ea; color: #8a5200; font-weight: 800; font-size: 13px; }
+.leave-duration-picks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.leave-duration-pick { cursor: pointer; margin: 0; }
+.leave-duration-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.leave-duration-pick span {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--line);
+  background: #fafafa; min-height: 74px; transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.leave-duration-pick span i { color: #9ca3af; margin-bottom: 2px; }
+.leave-duration-pick span b { font-size: 13px; color: var(--ink); }
+.leave-duration-pick span small { font-size: 10px; color: var(--muted); font-weight: 600; line-height: 1.3; }
+.leave-duration-pick input:checked + span {
+  border-color: var(--brand); background: linear-gradient(180deg, #fff8ec, #fff);
+  box-shadow: 0 6px 16px rgba(245, 160, 27, .18);
+}
+.leave-duration-pick input:checked + span i { color: var(--brand); }
+.leave-duration-pick.is-disabled { opacity: .45; cursor: not-allowed; }
+.leave-duration-pick.is-disabled span { background: #f3f4f6; }
 
 /* Notifications */
 .notif-wrap { position: relative; }
@@ -1374,6 +1392,28 @@ a.code-pill:hover { background: var(--brand); color: #fff; }
 .dash-item:last-child { border-bottom: 0; }
 .dash-item b { display: block; font-size: 13px; font-weight: 800; color: var(--ink); }
 .dash-item p { margin: 2px 0 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
+.celeb-list { max-height: 340px; }
+.celeb-item { align-items: center; }
+.celeb-item.is-today { background: #fff8ec; margin: 0 -10px; padding-left: 10px; padding-right: 10px; border-radius: 12px; border-bottom-color: transparent; }
+.celeb-av {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; font-weight: 800; font-size: 12px;
+  background: #fff1dc; color: #c47800; overflow: hidden;
+}
+.celeb-av.has-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wish-btn {
+  border: 0; border-radius: 999px; padding: 6px 12px; flex-shrink: 0;
+  background: var(--brand); color: #fff; font-size: 11px; font-weight: 800;
+  cursor: pointer; white-space: nowrap;
+}
+.wish-btn:hover { background: var(--brand-deep, #d4890f); }
+.wish-chip {
+  flex-shrink: 0; border-radius: 999px; padding: 5px 10px;
+  font-size: 11px; font-weight: 800; white-space: nowrap;
+  background: #f3f4f6; color: #6b7280;
+}
+.wish-chip.is-sent { background: #ecfdf5; color: #059669; }
+.wish-chip.is-you { background: #fff4e5; color: #c47800; }
 .di-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; background: #fff1dc; color: #e08a0a; font-size: 13px; }
 .di-date { width: 44px; flex-shrink: 0; text-align: center; border-radius: 10px; background: linear-gradient(160deg, var(--brand), var(--brand-dark)); color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 5px 0; line-height: 1.1; }
 .di-date b { display: block; font-size: 17px; color: #fff; }

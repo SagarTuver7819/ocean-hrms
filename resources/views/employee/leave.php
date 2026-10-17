@@ -44,9 +44,19 @@ $tracked = array_values(array_filter($balances, fn($b) => $b['tracked']));
             <div class="col-6"><label class="form-label required">From</label><input type="date" class="form-control" name="from_date" min="<?= date('Y-m-d', strtotime('-7 days')) ?>" required></div>
             <div class="col-6"><label class="form-label required">To</label><input type="date" class="form-control" name="to_date" required></div>
           </div>
-          <div class="form-check mb-2 d-none">
-            <input class="form-check-input" type="checkbox" name="half_day" value="1" id="halfDay">
-            <label class="form-check-label" for="halfDay">Half day only</label>
+          <div class="mb-3" id="leaveDurationWrap">
+            <label class="form-label required">Leave Duration</label>
+            <div class="leave-duration-picks">
+              <label class="leave-duration-pick">
+                <input type="radio" name="leave_duration" value="full" checked>
+                <span><i class="fa-solid fa-calendar-day"></i><b>Full Day</b><small>1 full leave day</small></span>
+              </label>
+              <label class="leave-duration-pick">
+                <input type="radio" name="leave_duration" value="half">
+                <span><i class="fa-solid fa-adjust"></i><b>Half Day</b><small>0.5 leave day · same date only</small></span>
+              </label>
+            </div>
+            <div class="form-text" id="leaveDurationHint">Half day is available when From and To are the same date.</div>
           </div>
           <div class="leave-days-preview mb-3" id="leaveDays">Select dates to see leave days</div>
           <div class="mb-3"><label class="form-label required">Reason</label><textarea class="form-control" name="reason" rows="3" required placeholder="e.g. Family function"></textarea></div>
@@ -67,7 +77,14 @@ $tracked = array_values(array_filter($balances, fn($b) => $b['tracked']));
               <td data-order="<?= e($r['created_at']) ?>"><?= format_date($r['created_at']) ?></td>
               <td><span class="badge-status badge-late"><?= e($r['code']) ?></span> <?= e($r['leave_type']) ?></td>
               <td><?= format_date($r['from_date']) ?><?= $r['to_date'] !== $r['from_date'] ? ' – ' . format_date($r['to_date']) : '' ?></td>
-              <td class="fw-bold"><?= $num($r['days']) ?></td>
+              <td class="fw-bold">
+                <?= $num($r['days']) ?>
+                <?php if ((float) $r['days'] <= 0.5 && $r['from_date'] === $r['to_date']): ?>
+                  <small class="d-block text-muted">Half Day</small>
+                <?php elseif ($r['from_date'] === $r['to_date']): ?>
+                  <small class="d-block text-muted">Full Day</small>
+                <?php endif; ?>
+              </td>
               <td class="att-breaks"><?= e(mb_strimwidth($r['reason'] ?? '', 0, 60, '…')) ?><?= $r['hr_remark'] ? '<small class="d-block text-dark">HR: ' . e($r['hr_remark']) . '</small>' : '' ?></td>
               <td><span class="badge-status badge-<?= e($r['status']) ?>"><?= e(ucfirst($r['status'])) ?></span></td>
               <td>

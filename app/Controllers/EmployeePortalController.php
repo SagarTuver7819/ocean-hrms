@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Models\Employee;
 use App\Services\Attendance;
+use App\Services\Celebrations;
 use App\Services\EmployeePhoto;
 use App\Services\Leave;
 use App\Services\Letterhead;
@@ -54,6 +55,8 @@ class EmployeePortalController extends Controller
         $monthRows = Database::all("SELECT * FROM attendance WHERE employee_id = ? AND DATE_FORMAT(attendance_date, '%Y-%m') = ?", [$empId, date('Y-m')]);
 
         $emp = (new Employee())->fullProfile($empId);
+        $wishedBirthday = Celebrations::wishedToday($empId, 'birthday');
+        $wishedAnniv = Celebrations::wishedToday($empId, 'anniversary');
 
         $this->view('employee/dashboard', [
             'title' => 'My Dashboard',
@@ -67,7 +70,24 @@ class EmployeePortalController extends Controller
             'recentLeaves' => $leaves->fetchAll(),
             'holidays' => $holidays,
             'announcements' => $announcements,
+            'birthdays' => Celebrations::upcomingBirthdays(45, 8),
+            'anniversaries' => Celebrations::upcomingAnniversaries(30, 6),
+            'wishedBirthday' => $wishedBirthday,
+            'wishedAnniv' => $wishedAnniv,
+            'myEmpId' => $empId,
         ]);
+    }
+
+    /** Send birthday / work-anniversary wish to a colleague */
+    public function wish(): void
+    {
+        $empId = $this->requireEmployee();
+        $this->requireCsrf('employee/dashboard');
+        $toId = (int) $this->input('to_employee_id');
+        $type = (string) $this->input('wish_type', 'birthday');
+        $result = Celebrations::sendWish($empId, $toId, $type);
+        $this->flash($result['ok'] ? 'success' : 'error', $result['message']);
+        $this->redirect('employee/dashboard');
     }
 
     public function profile(): void

@@ -1,33 +1,56 @@
 <?php
-$renderNode = function (array $node, bool $leader = false, string $badge = '') use (&$renderNode): void {
+$fmtDate = static fn(?string $d) => $d ? date('d M Y', strtotime($d)) : '—';
+$renderNode = function (array $node, bool $leader = false, string $badge = '') use (&$renderNode, $fmtDate): void {
     $photo = !empty($node['profile_photo']) ? asset($node['profile_photo']) : null;
     $desig = $badge !== '' ? $badge : ($node['designation_name'] ?: 'Team Member');
     $dept = $node['department_name'] ?? '';
     $isCustomLeader = !empty($node['is_leader']);
-    $canOpen = !$isCustomLeader && (can('employee.view') || can('*')) && !empty($node['id']);
-    $href = $canOpen ? url('employees/' . $node['id']) : null;
+    $childCount = count($node['children'] ?? []);
+    $canProfile = !$isCustomLeader && (can('employee.view') || can('*')) && !empty($node['id']);
+    $profileUrl = $canProfile ? url('employees/' . $node['id']) : '';
+
+    $popup = [
+        'id' => (int) ($node['id'] ?? 0),
+        'name' => $node['full_name'] ?? '',
+        'initials' => $node['initials'] ?? '?',
+        'photo' => $photo ?: '',
+        'code' => $node['employee_code'] ?? '',
+        'role' => $desig,
+        'department' => $dept,
+        'email' => $node['official_email'] ?? '',
+        'personal_email' => $node['personal_email'] ?? '',
+        'mobile' => $node['mobile'] ?? '',
+        'type' => !empty($node['employment_type']) ? ucwords(str_replace('_', ' ', $node['employment_type'])) : '',
+        'joining' => !empty($node['joining_date']) ? $fmtDate($node['joining_date']) : '',
+        'location' => $node['work_location'] ?? '',
+        'status' => !empty($node['status']) ? ucfirst((string) $node['status']) : '',
+        'reports_to' => $node['reports_to'] ?? '',
+        'reports' => $childCount,
+        'profile' => $profileUrl,
+        'is_leader' => $isCustomLeader ? 1 : 0,
+    ];
     ?>
     <li>
-      <div class="oc-card <?= $leader || $isCustomLeader ? 'oc-leader' : '' ?>">
-        <button type="button" class="oc-photo <?= $photo ? 'has-photo js-photo-view' : '' ?>"
-          <?php if ($photo): ?> data-photo="<?= e($photo) ?>" data-name="<?= e($node['full_name']) ?>"<?php endif; ?>
-          title="<?= e($node['full_name']) ?>">
+      <div class="oc-card <?= $leader || $isCustomLeader ? 'oc-leader' : '' ?> js-oc-card"
+           role="button" tabindex="0"
+           data-oc="<?= htmlspecialchars(json_encode($popup, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>"
+           title="View <?= e($node['full_name']) ?>">
+        <div class="oc-photo <?= $photo ? 'has-photo' : '' ?>">
           <?php if ($photo): ?>
             <img src="<?= e($photo) ?>" alt="<?= e($node['full_name']) ?>">
           <?php else: ?>
             <span><?= e($node['initials']) ?></span>
           <?php endif; ?>
-        </button>
+        </div>
         <div class="oc-meta">
-          <?php if ($href): ?>
-            <b><a href="<?= e($href) ?>" class="oc-name"><?= e($node['full_name']) ?></a></b>
-          <?php else: ?>
-            <b><?= e($node['full_name']) ?></b>
-          <?php endif; ?>
+          <b><?= e($node['full_name']) ?></b>
           <small class="oc-role"><?= e($desig) ?></small>
           <?php if ($dept && $badge === ''): ?><small class="oc-dept"><?= e($dept) ?></small><?php endif; ?>
           <?php if (!empty($node['employee_code'])): ?>
             <small class="oc-code"><?= e($node['employee_code']) ?></small>
+          <?php endif; ?>
+          <?php if ($childCount > 0): ?>
+            <small class="oc-reports"><?= $childCount ?> direct report<?= $childCount === 1 ? '' : 's' ?></small>
           <?php endif; ?>
         </div>
       </div>
@@ -41,17 +64,21 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
     </li>
     <?php
 };
+$hasLeaders = $founder || $coFounder;
+$hasTree = $hasLeaders || !empty($teamRoots);
 ?>
 
 <div class="page-head">
   <div>
     <h1>Organization Chart</h1>
-    <p>Founder &amp; Co-Founder (manual names) · employees by reporting manager</p>
+    <p>Click any person for photo, office email, post &amp; details · <?= (int) ($empCount ?? 0) ?> active</p>
   </div>
-  <div class="d-flex gap-2">
-    <a href="<?= url('org-chart/print') ?>" class="btn btn-sm btn-outline-ink" target="_blank">
-      <i class="fa-solid fa-print me-1"></i>Print on Letterhead
-    </a>
+  <div class="d-flex gap-2 flex-wrap">
+    <?php if (empty($isEmp)): ?>
+      <a href="<?= url('org-chart/print') ?>" class="btn btn-sm btn-outline-ink" target="_blank">
+        <i class="fa-solid fa-print me-1"></i>Print on Letterhead
+      </a>
+    <?php endif; ?>
     <?php if ($isAdmin): ?>
       <button type="button" class="btn btn-sm btn-brand" data-bs-toggle="modal" data-bs-target="#ocLeadersModal">
         <i class="fa-solid fa-user-tie me-1"></i>Add Founder / Co-Founder
@@ -60,49 +87,95 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
   </div>
 </div>
 
-<?php if (!$founder && !$coFounder): ?>
+<?php if (!$hasLeaders): ?>
   <div class="alert alert-warning">
     <i class="fa-solid fa-circle-info me-1"></i>
-    Founder / Co-Founder not added yet.
-    <?php if ($isAdmin): ?> Click <b>Add Founder / Co-Founder</b> and enter names.
+    Founder / Co-Founder not added yet — chart shows employees only.
+    <?php if ($isAdmin): ?> Click <b>Add Founder / Co-Founder</b> to set Direct Owners.
     <?php else: ?> Ask HR to add leaders.<?php endif; ?>
   </div>
 <?php endif; ?>
 
 <div class="oc-wrap">
   <div class="oc-toolbar no-print">
-    <button type="button" class="btn btn-sm btn-outline-ink" id="ocZoomOut" title="Zoom out"><i class="fa-solid fa-minus"></i></button>
-    <button type="button" class="btn btn-sm btn-outline-ink" id="ocZoomIn" title="Zoom in"><i class="fa-solid fa-plus"></i></button>
-    <a href="<?= url('org-chart/print') ?>" class="btn btn-sm btn-outline-ink" target="_blank"><i class="fa-solid fa-print me-1"></i>Letterhead Print</a>
+    <div class="oc-zoom">
+      <button type="button" class="btn btn-sm btn-outline-ink" id="ocZoomOut" title="Zoom out"><i class="fa-solid fa-minus"></i></button>
+      <span class="oc-zoom-label" id="ocZoomLabel">100%</span>
+      <button type="button" class="btn btn-sm btn-outline-ink" id="ocZoomIn" title="Zoom in"><i class="fa-solid fa-plus"></i></button>
+      <button type="button" class="btn btn-sm btn-outline-ink" id="ocZoomReset" title="Reset">Reset</button>
+    </div>
+    <?php if (empty($isEmp)): ?>
+      <a href="<?= url('org-chart/print') ?>" class="btn btn-sm btn-outline-ink" target="_blank"><i class="fa-solid fa-print me-1"></i>Letterhead Print</a>
+    <?php endif; ?>
   </div>
 
   <div class="oc-stage" id="ocStage">
     <div class="oc-scale" id="ocScale">
-      <?php if ($founder || $coFounder): ?>
+      <?php if ($hasLeaders): ?>
         <div class="oc-roots">
           <ul class="oc-tree oc-tree-roots">
             <?php if ($founder) {
-                $renderNode($founder, true, 'Founder');
+                $renderNode($founder, true, 'Founder / Direct Owner');
             } ?>
             <?php if ($coFounder) {
-                $renderNode($coFounder, true, 'Co-Founder');
+                $renderNode($coFounder, true, 'Co-Founder / Direct Owner');
             } ?>
           </ul>
         </div>
-      <?php endif; ?>
-
-      <?php if ($teamRoots): ?>
+      <?php elseif ($teamRoots): ?>
         <div class="oc-section">
-          <h3><i class="fa-solid fa-users me-1"></i> Employees</h3>
+          <h3><i class="fa-solid fa-sitemap me-1"></i> Team structure</h3>
           <ul class="oc-tree">
             <?php foreach ($teamRoots as $n) {
                 $renderNode($n);
             } ?>
           </ul>
         </div>
-      <?php elseif (!$founder && !$coFounder): ?>
-        <div class="text-center text-muted py-5">No active employees to show.</div>
       <?php endif; ?>
+
+      <?php if (!$hasTree): ?>
+        <div class="oc-empty">
+          <i class="fa-solid fa-sitemap"></i>
+          <b>No chart data yet</b>
+          <p>Add Founder / Co-Founder and set Reporting Person on employees.</p>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+</div>
+
+<!-- Employee / Leader detail popup -->
+<div class="modal fade" id="ocPersonModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content oc-person-modal">
+      <button type="button" class="btn-close oc-person-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="oc-person-hero">
+        <div class="oc-person-photo" id="ocPmPhoto"><span id="ocPmInitials">?</span></div>
+        <div>
+          <h4 id="ocPmName">—</h4>
+          <div class="oc-person-role" id="ocPmRole">—</div>
+          <div class="oc-person-code" id="ocPmCode"></div>
+        </div>
+      </div>
+      <div class="oc-person-body">
+        <div class="oc-person-grid">
+          <div><span>Department</span><b id="ocPmDept">—</b></div>
+          <div><span>Post / Designation</span><b id="ocPmPost">—</b></div>
+          <div class="full"><span>Office Email</span><b id="ocPmEmail">—</b></div>
+          <div class="full"><span>Personal Email</span><b id="ocPmPersonal">—</b></div>
+          <div><span>Mobile</span><b id="ocPmMobile">—</b></div>
+          <div><span>Employment Type</span><b id="ocPmType">—</b></div>
+          <div><span>Joining Date</span><b id="ocPmJoin">—</b></div>
+          <div><span>Work Location</span><b id="ocPmLoc">—</b></div>
+          <div><span>Status</span><b id="ocPmStatus">—</b></div>
+          <div><span>Reports To</span><b id="ocPmReportsTo">—</b></div>
+          <div class="full"><span>Direct Reports</span><b id="ocPmReports">—</b></div>
+        </div>
+      </div>
+      <div class="oc-person-foot" id="ocPmFoot">
+        <a href="#" class="btn btn-sm btn-brand" id="ocPmProfile" target="_blank"><i class="fa-solid fa-id-card me-1"></i>Open Full Profile</a>
+        <button type="button" class="btn btn-sm btn-outline-ink" data-bs-dismiss="modal">Close</button>
+      </div>
     </div>
   </div>
 </div>
@@ -117,7 +190,7 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <p class="small text-muted mb-3">Enter names manually (not from employee list). Optional photo. Employees below still follow <b>Reporting Manager</b>.</p>
+        <p class="small text-muted mb-3">These names appear as <b>Direct Owner</b> on the chart and in the employee Reporting Person list.</p>
 
         <div class="mb-3">
           <label class="form-label">Founder name</label>
@@ -162,13 +235,92 @@ $renderNode = function (array $node, bool $leader = false, string $badge = '') u
 </div>
 <?php endif; ?>
 
-<link rel="stylesheet" href="<?= asset('assets/css/org-chart.css') ?>">
+<link rel="stylesheet" href="<?= asset('assets/css/org-chart.css') ?>?v=<?= @filemtime(BASE_PATH . '/public/assets/css/org-chart.css') ?>">
 <script>
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
   let z = 1;
   const scale = document.getElementById('ocScale');
-  const apply = () => { if (scale) scale.style.transform = 'scale(' + z + ')'; };
-  document.getElementById('ocZoomIn')?.addEventListener('click', () => { z = Math.min(1.4, z + 0.1); apply(); });
-  document.getElementById('ocZoomOut')?.addEventListener('click', () => { z = Math.max(0.55, z - 0.1); apply(); });
-})();
+  const label = document.getElementById('ocZoomLabel');
+  const apply = () => {
+    if (scale) scale.style.transform = 'scale(' + z + ')';
+    if (label) label.textContent = Math.round(z * 100) + '%';
+  };
+  document.getElementById('ocZoomIn')?.addEventListener('click', () => { z = Math.min(1.5, +(z + 0.1).toFixed(2)); apply(); });
+  document.getElementById('ocZoomOut')?.addEventListener('click', () => { z = Math.max(0.5, +(z - 0.1).toFixed(2)); apply(); });
+  document.getElementById('ocZoomReset')?.addEventListener('click', () => { z = 1; apply(); });
+
+  const modalEl = document.getElementById('ocPersonModal');
+  const set = (id, val, isHtml) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const v = (val && String(val).trim()) ? String(val).trim() : '—';
+    if (isHtml) el.innerHTML = v; else el.textContent = v;
+  };
+  const openPerson = (raw) => {
+    let d;
+    try { d = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (err) { console.warn('org-chart popup', err); return; }
+    const photoBox = document.getElementById('ocPmPhoto');
+    if (d.photo) {
+      photoBox.innerHTML = '<img src="' + d.photo.replace(/"/g, '&quot;') + '" alt="">';
+      photoBox.classList.add('has-photo');
+    } else {
+      photoBox.innerHTML = '<span id="ocPmInitials"></span>';
+      photoBox.classList.remove('has-photo');
+      document.getElementById('ocPmInitials').textContent = d.initials || '?';
+    }
+    set('ocPmName', d.name);
+    set('ocPmRole', d.role);
+    set('ocPmCode', d.code ? d.code : '');
+    set('ocPmDept', d.department);
+    set('ocPmPost', d.role);
+    if (d.email) {
+      const a = document.createElement('a');
+      a.href = 'mailto:' + d.email;
+      a.textContent = d.email;
+      const emailEl = document.getElementById('ocPmEmail');
+      emailEl.textContent = '';
+      emailEl.appendChild(a);
+    } else set('ocPmEmail', '—');
+    set('ocPmPersonal', d.personal_email);
+    set('ocPmMobile', d.mobile);
+    set('ocPmType', d.type);
+    set('ocPmJoin', d.joining);
+    set('ocPmLoc', d.location);
+    set('ocPmStatus', d.status);
+    set('ocPmReportsTo', d.reports_to);
+    set('ocPmReports', d.reports > 0 ? (d.reports + ' person' + (d.reports === 1 ? '' : 's')) : 'None');
+    const foot = document.getElementById('ocPmFoot');
+    const link = document.getElementById('ocPmProfile');
+    if (d.profile) {
+      link.href = d.profile;
+      link.classList.remove('d-none');
+      foot.classList.remove('leader-only');
+    } else {
+      link.classList.add('d-none');
+      foot.classList.add('leader-only');
+    }
+    if (window.bootstrap && bootstrap.Modal) {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    } else if (window.jQuery) {
+      jQuery(modalEl).modal('show');
+    } else {
+      modalEl.classList.add('show');
+      modalEl.style.display = 'block';
+    }
+  };
+
+  document.addEventListener('click', function (e) {
+    const card = e.target.closest('.js-oc-card');
+    if (!card) return;
+    e.preventDefault();
+    openPerson(card.getAttribute('data-oc'));
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.js-oc-card');
+    if (!card) return;
+    e.preventDefault();
+    openPerson(card.getAttribute('data-oc'));
+  });
+});
 </script>
