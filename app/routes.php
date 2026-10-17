@@ -42,6 +42,7 @@ $router->get('/employees/self-fill', ['EmployeeSelfFillController', 'admin'], ['
 $router->post('/employees/self-fill', ['EmployeeSelfFillController', 'createInvite'], ['AuthMiddleware']);
 $router->post('/employees/self-fill/{id}/revoke', ['EmployeeSelfFillController', 'revoke'], ['AuthMiddleware']);
 $router->get('/employees/logins', ['EmployeeController', 'logins'], ['AuthMiddleware']);
+$router->get('/employees/logins/export', ['EmployeeController', 'exportLogins'], ['AuthMiddleware']);
 $router->post('/employees/logins/generate', ['EmployeeController', 'issueAllLogins'], ['AuthMiddleware']);
 $router->post('/employees/{id}/login/toggle', ['EmployeeController', 'toggleLogin'], ['AuthMiddleware']);
 $router->get('/employees/{id}', ['EmployeeController', 'show'], ['AuthMiddleware']);

@@ -186,8 +186,95 @@ class EmployeeController extends Controller
     public function logins(): void
     {
         $this->authorize('employee.edit');
+        $this->view('hr/employees/logins', [
+            'title' => 'Employee Logins',
+            'page' => 'employee-logins',
+            'rows' => $this->loginRows(),
+        ]);
+    }
+
+    /** Excel/CSV download: ?type=all|active|intern */
+    public function exportLogins(): void
+    {
+        $this->authorize('employee.edit');
+        $type = strtolower((string) $this->input('type', 'all'));
+        if (!in_array($type, ['all', 'active', 'intern'], true)) {
+            $type = 'all';
+        }
+
+        $rows = $this->loginRows();
+        if ($type === 'active') {
+            $rows = array_values(array_filter(
+                $rows,
+                fn($r) => in_array($r['emp_status'] ?? '', ['active', 'probation'], true)
+            ));
+        } elseif ($type === 'intern') {
+            $rows = array_values(array_filter(
+                $rows,
+                fn($r) => ($r['employment_type'] ?? '') === 'intern'
+                    || strcasecmp((string) ($r['department_name'] ?? ''), 'Internship') === 0
+            ));
+        }
+
+        $labels = [
+            'all' => 'All_Employee_Logins',
+            'active' => 'Active_Employees_Login_Sheet',
+            'intern' => 'Internship_Employees_Login_Sheet',
+        ];
+        $filename = ($labels[$type] ?? 'Employee_Logins') . '_' . date('Ymd_Hi') . '.csv';
+        $portalUrl = url('login');
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, [
+            'Sr', 'Employee Code', 'Name', 'Department', 'Designation',
+            'Employment Type', 'Status', 'Mobile',
+            'Username (Login ID)', 'Password', 'Login Status', 'Last Login', 'Portal URL', 'Notes',
+        ]);
+
+        foreach ($rows as $i => $r) {
+            $pwd = $r['password'];
+            $note = '';
+            if (empty($r['user_id'])) {
+                $pwd = '';
+                $note = 'No login yet';
+            } elseif ($pwd === null) {
+                $pwd = '';
+                $note = 'Password changed by employee — reset from Employee Logins';
+            }
+            $loginStatus = empty($r['user_id']) ? 'None' : (!empty($r['login_status']) ? 'Active' : 'Disabled');
+            fputcsv($out, [
+                $i + 1,
+                $r['employee_code'] ?? '',
+                trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '')),
+                $r['department_name'] ?? '',
+                $r['designation_name'] ?? '',
+                ucwords(str_replace('_', ' ', (string) ($r['employment_type'] ?? ''))),
+                ucfirst((string) ($r['emp_status'] ?? '')),
+                $r['mobile'] ?? '',
+                $r['username'] ?? ($r['employee_code'] ?? ''),
+                $pwd,
+                $loginStatus,
+                !empty($r['last_login_at']) ? date('d-M-Y h:i A', strtotime($r['last_login_at'])) : 'Never',
+                $portalUrl,
+                $note,
+            ]);
+        }
+        fclose($out);
+        exit;
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function loginRows(): array
+    {
         $rows = $this->db()->query(
-            "SELECT e.id, e.employee_code, e.first_name, e.last_name, e.status AS emp_status, e.mobile,
+            "SELECT e.id, e.employee_code, e.first_name, e.last_name, e.status AS emp_status,
+                    e.employment_type, e.mobile,
                     d.name AS department_name, g.name AS designation_name,
                     u.id AS user_id, u.username, u.login_secret, u.status AS login_status, u.last_login_at
              FROM employees e
@@ -200,11 +287,7 @@ class EmployeeController extends Controller
             $r['password'] = EmployeeLogin::decrypt($r['login_secret']);
         }
         unset($r);
-        $this->view('hr/employees/logins', [
-            'title' => 'Employee Logins',
-            'page' => 'employee-logins',
-            'rows' => $rows,
-        ]);
+        return $rows;
     }
 
     public function issueAllLogins(): void

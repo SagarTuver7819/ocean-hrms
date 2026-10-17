@@ -10,10 +10,21 @@ $portalUrl = url('login');
     <h1>Employee Logins</h1>
     <p>Auto-generated portal usernames &amp; passwords · Username is the employee code</p>
   </div>
-  <form method="post" action="<?= url('employees/logins/generate') ?>">
-    <?= csrf_field() ?>
-    <button class="btn btn-sm btn-brand"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate Missing Logins</button>
-  </form>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <a class="btn btn-sm btn-excel" href="<?= url('employees/logins/export?type=all') ?>">
+      <i class="fa-solid fa-file-excel me-1"></i>Excel · All
+    </a>
+    <a class="btn btn-sm btn-excel" href="<?= url('employees/logins/export?type=active') ?>">
+      <i class="fa-solid fa-file-excel me-1"></i>Excel · Active
+    </a>
+    <a class="btn btn-sm btn-excel" href="<?= url('employees/logins/export?type=intern') ?>">
+      <i class="fa-solid fa-file-excel me-1"></i>Excel · Internship
+    </a>
+    <form method="post" action="<?= url('employees/logins/generate') ?>" class="d-inline">
+      <?= csrf_field() ?>
+      <button class="btn btn-sm btn-brand"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate Missing Logins</button>
+    </form>
+  </div>
 </div>
 
 <div class="metric-row">

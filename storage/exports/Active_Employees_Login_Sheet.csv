@@ -1,0 +1,2 @@
+﻿Sr,"Employee Code",Name,Department,Designation,"Employment Type",Status,Mobile,Email,"Username (Login ID)",Password,"Login Status","Last Login","Portal URL",Notes
+1,OI20260001,"Amit Patel","Software Development","Software Engineer","Full Time",Active,9876500001,amit.patel@oceaninfotech.co.in,OI20260001,Ocean@6484,Active,"16-Oct-2026 05:32 PM",http://localhost/Ocean_HRMS/public/login,
