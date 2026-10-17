@@ -110,6 +110,28 @@ function notify_hr(string $title, string $message, ?string $link = null): void
     }
 }
 
+/** Notifies active employee-portal users (optional department filter). */
+function notify_employees(string $title, string $message, ?string $link = null, ?int $departmentId = null): void
+{
+    try {
+        $sql = "SELECT DISTINCT u.id
+                FROM users u
+                INNER JOIN employees e ON e.user_id = u.id
+                WHERE u.status = 1
+                  AND e.status NOT IN ('inactive','resigned','draft')";
+        $params = [];
+        if ($departmentId) {
+            $sql .= ' AND e.department_id = ?';
+            $params[] = $departmentId;
+        }
+        foreach (Database::all($sql, $params) as $u) {
+            notify((int) $u['id'], $title, $message, $link);
+        }
+    } catch (Throwable $e) {
+        // silent
+    }
+}
+
 /** Minutes as "8h 05m". */
 function hm(int|float|null $minutes, string $empty = '—'): string
 {

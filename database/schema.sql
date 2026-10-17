@@ -411,7 +411,8 @@ CREATE TABLE announcements (
 CREATE TABLE holidays (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
-  holiday_date DATE NOT NULL,
+  holiday_date DATE NOT NULL COMMENT 'From date',
+  to_date DATE NULL COMMENT 'To date (same as holiday_date for single day)',
   holiday_type VARCHAR(60) DEFAULT 'public',
   description VARCHAR(255) NULL,
   location VARCHAR(120) NULL,

@@ -1,7 +1,20 @@
+<?php
+$rangeLabel = static function (array $item): string {
+    $from = $item['holiday_date'] ?? '';
+    $to = $item['to_date'] ?? $from;
+    if ($from === '') {
+        return '—';
+    }
+    if ($to === '' || $to === $from) {
+        return format_date($from);
+    }
+    return format_date($from) . ' – ' . format_date($to);
+};
+?>
 <div class="page-head">
   <div>
     <h1>Holiday Master</h1>
-    <p>Company holiday calendar · CRUD</p>
+    <p>Company holiday calendar · From–To date range · CRUD</p>
   </div>
   <button type="button" class="btn btn-sm btn-brand"
     data-bs-toggle="modal" data-bs-target="#holidayModal"
@@ -19,7 +32,7 @@
         <thead>
           <tr>
             <th width="60">Sr.</th>
-            <th>Date</th>
+            <th>From – To</th>
             <th>Holiday Name</th>
             <th>Type</th>
             <th>Location</th>
@@ -31,7 +44,7 @@
         <?php foreach ($items as $i => $item): ?>
           <tr>
             <td><?= $i + 1 ?></td>
-            <td class="fw-semibold"><?= format_date($item['holiday_date']) ?></td>
+            <td class="fw-semibold text-nowrap"><?= e($rangeLabel($item)) ?></td>
             <td><?= e($item['name']) ?></td>
             <td><span class="badge-status badge-late"><?= e($item['holiday_type']) ?></span></td>
             <td><?= e($item['location'] ?? 'All') ?></td>
@@ -75,9 +88,16 @@
           <label class="form-label required">Holiday Name</label>
           <input type="text" name="name" class="form-control" required>
         </div>
-        <div class="mb-3">
-          <label class="form-label required">Date</label>
-          <input type="text" name="holiday_date" class="form-control datepicker" required placeholder="YYYY-MM-DD">
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label required">From Date</label>
+            <input type="text" name="holiday_date" class="form-control datepicker" required placeholder="YYYY-MM-DD">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">To Date</label>
+            <input type="text" name="to_date" class="form-control datepicker" placeholder="YYYY-MM-DD">
+            <div class="form-text">Leave blank or same as From for a single day.</div>
+          </div>
         </div>
         <div class="row g-3">
           <div class="col-md-6">

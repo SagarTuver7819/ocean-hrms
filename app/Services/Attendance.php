@@ -85,7 +85,12 @@ class Attendance
             'breakSecs' => $breakSecs,
             'breakStartedAt' => $breakStartedAt,
             'targetSecs' => max(60, (int) $shift['full_day_minutes'] * 60),
-            'holiday' => Database::value('SELECT name FROM holidays WHERE holiday_date = ?', [$today]),
+            'holiday' => Database::value(
+                'SELECT name FROM holidays
+                 WHERE ? BETWEEN holiday_date AND COALESCE(to_date, holiday_date)
+                 ORDER BY holiday_date LIMIT 1',
+                [$today]
+            ),
             'weekOff' => in_array((int) date('w'), self::weekOffs($shift), true),
             'onLeave' => (bool) Database::value(
                 "SELECT COUNT(*) FROM leave_requests WHERE employee_id = ? AND status = 'approved' AND ? BETWEEN from_date AND to_date",

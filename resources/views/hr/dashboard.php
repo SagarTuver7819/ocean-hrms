@@ -249,10 +249,16 @@
       <div class="dcard-empty">No upcoming holidays</div>
     <?php else: ?>
       <div class="holiday-strip">
-        <?php foreach ($holidays as $h): ?>
+        <?php foreach ($holidays as $h):
+          $from = $h['holiday_date'];
+          $to = $h['to_date'] ?? $from;
+          $label = ($to && $to !== $from)
+            ? date('d M', strtotime($from)) . ' – ' . date('d M Y', strtotime($to))
+            : date('D, M Y', strtotime($from));
+        ?>
           <div class="holiday-chip">
-            <span class="hd-day"><?= date('d', strtotime($h['holiday_date'])) ?></span>
-            <div><b><?= e($h['name']) ?></b><small><?= date('D, M Y', strtotime($h['holiday_date'])) ?></small></div>
+            <span class="hd-day"><?= date('d', strtotime($from)) ?></span>
+            <div><b><?= e($h['name']) ?></b><small><?= e($label) ?></small></div>
           </div>
         <?php endforeach; ?>
       </div>

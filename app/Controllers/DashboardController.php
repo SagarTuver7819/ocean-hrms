@@ -96,7 +96,9 @@ class DashboardController extends Controller
         )->fetchAll();
 
         $holidays = $db->query(
-            "SELECT * FROM holidays WHERE holiday_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 45 DAY)
+            "SELECT * FROM holidays
+             WHERE holiday_date <= DATE_ADD(CURDATE(), INTERVAL 45 DAY)
+               AND COALESCE(to_date, holiday_date) >= CURDATE()
              ORDER BY holiday_date LIMIT 6"
         )->fetchAll();
 

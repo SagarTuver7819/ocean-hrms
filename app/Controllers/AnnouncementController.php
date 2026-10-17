@@ -26,20 +26,36 @@ class AnnouncementController extends Controller
     public function store(): void
     {
         $this->requireCsrf('announcements');
+        $title = trim((string) $this->input('title'));
+        $description = trim((string) $this->input('description'));
+        $deptId = $this->input('target_department_id') ? (int) $this->input('target_department_id') : null;
+        $status = (int) $this->input('status', 1);
+
         $this->db()->prepare(
             'INSERT INTO announcements (title, description, publish_date, expiry_date, target_department_id, status, created_by, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, NOW())'
         )->execute([
-            trim((string) $this->input('title')),
-            trim((string) $this->input('description')),
+            $title,
+            $description,
             $this->input('publish_date') ?: date('Y-m-d'),
             $this->input('expiry_date') ?: null,
-            $this->input('target_department_id') ?: null,
-            (int) $this->input('status', 1),
+            $deptId,
+            $status,
             Auth::id(),
         ]);
         activity_log('announcement', 'created');
-        $this->flash('success', 'Announcement published successfully.');
+
+        if ($status === 1) {
+            $preview = mb_strimwidth(preg_replace('/\s+/', ' ', strip_tags($description)) ?? '', 0, 120, '…');
+            notify_employees(
+                'New Announcement',
+                $title . ($preview !== '' ? ' — ' . $preview : ''),
+                '/announcements',
+                $deptId
+            );
+        }
+
+        $this->flash('success', 'Announcement published successfully.' . ($status === 1 ? ' Employees notified.' : ''));
         $this->redirect('announcements');
     }
 

@@ -210,7 +210,14 @@ class DbSync
             $log[] = 'skip · uploads/org exists';
         }
 
-        $syncVersion = '2026-10-17-employee-wishes-v1';
+        // Holiday master: From Date (holiday_date) + To Date
+        $addColumn('holidays', 'to_date', 'DATE NULL DEFAULT NULL AFTER holiday_date');
+        if ($hasColumn('holidays', 'to_date')) {
+            $db->exec('UPDATE holidays SET to_date = holiday_date WHERE to_date IS NULL');
+            $log[] = 'ok · holidays.to_date backfilled';
+        }
+
+        $syncVersion = '2026-10-17-holiday-range-v1';
         $db->prepare(
             "INSERT INTO settings (setting_key, setting_value, updated_at) VALUES ('db_sync_version', ?, NOW())
              ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()"

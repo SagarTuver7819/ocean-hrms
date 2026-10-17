@@ -44,7 +44,10 @@ class EmployeePortalController extends Controller
         $leaves->execute([$empId]);
 
         $holidays = $db->query(
-            'SELECT * FROM holidays WHERE holiday_date >= CURDATE() ORDER BY holiday_date LIMIT 5'
+            'SELECT * FROM holidays
+             WHERE COALESCE(to_date, holiday_date) >= CURDATE()
+             ORDER BY holiday_date
+             LIMIT 5'
         )->fetchAll();
 
         $announcements = $db->query(

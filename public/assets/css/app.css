@@ -1375,30 +1375,81 @@ a.code-pill:hover { background: var(--brand); color: #fff; }
 .notif-item small { font-size: 10.5px; color: var(--muted); font-weight: 700; }
 .notif-empty { padding: 26px 16px; text-align: center; color: var(--muted); font-weight: 600; }
 .notif-menu-foot { display: block; padding: 10px; text-align: center; font-size: 12.5px; font-weight: 800; color: var(--brand-dark); text-decoration: none; background: #fafafb; }
-/* Employee dashboard: quick actions + equal-height info cards */
-.dash-actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 4px 0 16px; }
-.dash-actions a { display: flex; align-items: center; gap: 10px; padding: 11px 14px; background: #fff; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); font-weight: 700; font-size: 13px; text-decoration: none; box-shadow: var(--shadow-sm); transition: .18s; position: relative; }
-.dash-actions a:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: 0 8px 18px rgba(245,160,27,.16); }
-.dash-actions a span { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; font-size: 14px; }
-.dash-actions a em { margin-left: auto; font-style: normal; font-size: 10.5px; background: #fff1dc; color: #b86e00; padding: 2px 8px; border-radius: 20px; }
-.dash-actions .t-red { background: #fde2e2; color: #dc2626; } .dash-actions .t-sky { background: #ddf2fc; color: #0284c7; }
-.dash-actions .t-green { background: #dcf0ea; color: #059669; } .dash-actions .t-violet { background: #ede4fc; color: #7c3aed; }
+/* Employee dashboard lower panel (quick actions + equal cards) */
+.emp-dash-lower { margin-top: 4px; }
+.emp-dash-lower .dash-cards { --dash-card-h: 280px; }
+.emp-dash-lower .dash-cards + .dash-cards { margin-top: 0; }
+.dash-actions {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;
+  margin: 0 0 16px;
+}
+.dash-actions a {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 56px; padding: 12px 14px;
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  color: var(--ink); font-weight: 700; font-size: 13px; text-decoration: none;
+  box-shadow: var(--shadow-sm); transition: .18s ease; position: relative;
+}
+.dash-actions a:hover {
+  border-color: var(--brand); transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(245,160,27,.16); color: var(--ink);
+}
+.dash-actions a > span:first-child {
+  width: 36px; height: 36px; border-radius: 11px;
+  display: grid; place-items: center; flex-shrink: 0; font-size: 14px;
+}
+.dash-actions .da-label { flex: 1; min-width: 0; line-height: 1.25; }
+.dash-actions a em {
+  margin-left: auto; font-style: normal; font-size: 10.5px;
+  background: #fff1dc; color: #b86e00; padding: 2px 8px; border-radius: 20px; font-weight: 800;
+}
+.dash-actions .t-red { background: #fde2e2; color: #dc2626; }
+.dash-actions .t-sky { background: #ddf2fc; color: #0284c7; }
+.dash-actions .t-green { background: #dcf0ea; color: #059669; }
+.dash-actions .t-violet { background: #ede4fc; color: #7c3aed; }
 .dash-actions .t-orange { background: #fff1dc; color: #e08a0a; }
-.dash-cards .ep-card.cp { height: 100%; margin-bottom: 0; }
-.dash-cards .table thead th { background: #fff7ea; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #8a5a10; border-bottom: 2px solid var(--brand); padding: 10px 14px; }
+
+.dash-cards .ep-card.cp,
+.dash-cards .dash-panel {
+  height: 100%; min-height: var(--dash-card-h, 280px); margin-bottom: 0;
+  border-radius: 16px; overflow: hidden;
+}
+.dash-cards .ep-card-head { flex-shrink: 0; }
+.dash-cards .table thead th {
+  background: #fff7ea; font-size: 11px; text-transform: uppercase;
+  letter-spacing: .04em; color: #8a5a10; border-bottom: 2px solid var(--brand);
+  padding: 10px 14px; white-space: nowrap;
+}
 .dash-cards .table td { padding: 11px 14px; font-size: 13px; vertical-align: middle; }
-.dash-list { padding: 6px 16px 10px; max-height: 300px; overflow-y: auto; }
-.dash-item { display: flex; gap: 12px; padding: 11px 0; border-bottom: 1px dashed var(--line); }
+.dash-list {
+  padding: 4px 16px 12px; flex: 1 1 auto; min-height: 0;
+  max-height: 220px; overflow-y: auto; scrollbar-width: thin;
+}
+.dash-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 0; border-bottom: 1px solid #f1f5f9;
+}
 .dash-item:last-child { border-bottom: 0; }
-.dash-item b { display: block; font-size: 13px; font-weight: 800; color: var(--ink); }
-.dash-item p { margin: 2px 0 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
-.celeb-list { max-height: 340px; }
+.dash-item b {
+  display: block; font-size: 13px; font-weight: 800; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dash-item p { margin: 2px 0 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.dash-clamp {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.celeb-list { max-height: 220px; }
 .celeb-item { align-items: center; }
-.celeb-item.is-today { background: #fff8ec; margin: 0 -10px; padding-left: 10px; padding-right: 10px; border-radius: 12px; border-bottom-color: transparent; }
+.celeb-item.is-today {
+  background: #fff8ec; margin: 0 -8px; padding-left: 8px; padding-right: 8px;
+  border-radius: 12px; border-bottom-color: transparent;
+}
 .celeb-av {
   width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
   display: grid; place-items: center; font-weight: 800; font-size: 12px;
   background: #fff1dc; color: #c47800; overflow: hidden;
+  border: 2px solid #fff; box-shadow: 0 0 0 1px #f5c56a;
 }
 .celeb-av.has-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .wish-btn {
@@ -1414,13 +1465,35 @@ a.code-pill:hover { background: var(--brand); color: #fff; }
 }
 .wish-chip.is-sent { background: #ecfdf5; color: #059669; }
 .wish-chip.is-you { background: #fff4e5; color: #c47800; }
-.di-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; background: #fff1dc; color: #e08a0a; font-size: 13px; }
-.di-date { width: 44px; flex-shrink: 0; text-align: center; border-radius: 10px; background: linear-gradient(160deg, var(--brand), var(--brand-dark)); color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 5px 0; line-height: 1.1; }
+.di-ico {
+  width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+  flex-shrink: 0; background: #fff1dc; color: #e08a0a; font-size: 13px;
+}
+.di-date {
+  width: 44px; flex-shrink: 0; text-align: center; border-radius: 10px;
+  background: linear-gradient(160deg, var(--brand), var(--brand-dark));
+  color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  padding: 5px 0; line-height: 1.1;
+}
 .di-date b { display: block; font-size: 17px; color: #fff; }
-.dash-empty { padding: 34px 16px; text-align: center; color: var(--muted); font-size: 13px; font-weight: 600; }
-.dash-empty i { display: block; font-size: 24px; margin-bottom: 8px; color: #d1d5db; }
-@media (max-width: 1199px) { .dash-actions { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 575px) { .dash-actions { grid-template-columns: repeat(2, 1fr); } }
+.dash-empty {
+  padding: 28px 16px; text-align: center; color: var(--muted);
+  font-size: 13px; font-weight: 600;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.dash-empty i { display: block; font-size: 26px; margin-bottom: 8px; color: #e2e8f0; }
+@media (max-width: 1199px) {
+  .dash-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .emp-dash-lower .dash-cards { --dash-card-h: 260px; }
+}
+@media (max-width: 767px) {
+  .dash-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .emp-dash-lower .dash-cards { --dash-card-h: 240px; }
+}
+@media (max-width: 575px) {
+  .dash-actions { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dash-actions a { min-height: 52px; padding: 10px 12px; font-size: 12.5px; }
+}
 
 /* Employee salary slips */
 .slip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }

@@ -30,12 +30,13 @@ $present = rtrim(rtrim(number_format($monthStats['present'], 1), '0'), '.');
   <a href="<?= url('employee/salary') ?>" class="metric-card metric-blue text-decoration-none"><span class="m-ico"><i class="fa-solid fa-file-invoice"></i></span><div class="label">Salary slip</div><div class="value" style="font-size:20px"><?= $lastSlip ? date('M Y', strtotime($lastSlip . '-01')) : '—' ?></div><div class="sub"><?= $lastSlip ? 'Latest slip · View / Download' : 'Available after first month' ?></div></a>
 </div>
 
+<div class="emp-dash-lower">
 <div class="dash-actions">
-  <a href="<?= url('employee/leave') ?>"><span class="t-red"><i class="fa-solid fa-calendar-plus"></i></span>Apply Leave</a>
-  <a href="<?= url('employee/attendance') ?>"><span class="t-sky"><i class="fa-solid fa-fingerprint"></i></span>My Attendance</a>
-  <a href="<?= url('employee/salary') ?>"><span class="t-green"><i class="fa-solid fa-file-invoice"></i></span>Salary Slip</a>
-  <a href="<?= url('queries/create') ?>"><span class="t-violet"><i class="fa-solid fa-headset"></i></span>Raise Query<?php if ($pendingQueries): ?><em><?= (int) $pendingQueries ?> open</em><?php endif; ?></a>
-  <a href="<?= url('employee/profile') ?>"><span class="t-orange"><i class="fa-solid fa-user"></i></span>My Profile</a>
+  <a href="<?= url('employee/leave') ?>"><span class="t-red"><i class="fa-solid fa-calendar-plus"></i></span><span class="da-label">Apply Leave</span></a>
+  <a href="<?= url('employee/attendance') ?>"><span class="t-sky"><i class="fa-solid fa-fingerprint"></i></span><span class="da-label">My Attendance</span></a>
+  <a href="<?= url('employee/salary') ?>"><span class="t-green"><i class="fa-solid fa-file-invoice"></i></span><span class="da-label">Salary Slip</span></a>
+  <a href="<?= url('queries/create') ?>"><span class="t-violet"><i class="fa-solid fa-headset"></i></span><span class="da-label">Raise Query</span><?php if ($pendingQueries): ?><em><?= (int) $pendingQueries ?> open</em><?php endif; ?></a>
+  <a href="<?= url('employee/profile') ?>"><span class="t-orange"><i class="fa-solid fa-user"></i></span><span class="da-label">My Profile</span></a>
 </div>
 
 <?php
@@ -64,7 +65,7 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
 
 <div class="row g-3 dash-cards dash-cards-equal">
   <div class="col-lg-6 d-flex">
-    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100">
+    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100 dash-panel">
       <div class="ep-card-head">
         <span class="ep-card-ico"><i class="fa-solid fa-cake-candles"></i></span>
         <div><h3>Upcoming Birthdays</h3><small>Next 45 days · <?= count($birthdays ?? []) ?></small></div>
@@ -83,7 +84,7 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
               <div class="flex-grow-1 min-w-0">
                 <b><?= e($b['first_name'] . ' ' . $b['last_name']) ?></b>
                 <p><?= e($b['designation_name'] ?? $b['department_name'] ?? $b['employee_code']) ?>
-                  · <?= !empty($b['is_today']) ? 'Today 🎂' : 'In ' . (int) $b['in_days'] . 'd · ' . date('d M', strtotime($b['next_date'])) ?></p>
+                  · <?= !empty($b['is_today']) ? 'Today' : 'In ' . (int) $b['in_days'] . 'd · ' . date('d M', strtotime($b['next_date'])) ?></p>
               </div>
               <?= $wishBtn($b, 'birthday', $wishedBirthday, $myEmpId) ?>
             </div>
@@ -93,7 +94,7 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
     </div>
   </div>
   <div class="col-lg-6 d-flex">
-    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100">
+    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100 dash-panel">
       <div class="ep-card-head">
         <span class="ep-card-ico"><i class="fa-solid fa-award"></i></span>
         <div><h3>Work Anniversaries</h3><small>Next 30 days · <?= count($anniversaries ?? []) ?></small></div>
@@ -112,7 +113,7 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
               <div class="flex-grow-1 min-w-0">
                 <b><?= e($a['first_name'] . ' ' . $a['last_name']) ?></b>
                 <p><?= (int) $a['years'] ?> yr · <?= e($a['department_name'] ?? '') ?>
-                  · <?= !empty($a['is_today']) ? 'Today 🎉' : 'In ' . (int) $a['in_days'] . 'd' ?></p>
+                  · <?= !empty($a['is_today']) ? 'Today' : 'In ' . (int) $a['in_days'] . 'd' ?></p>
               </div>
               <?= $wishBtn($a, 'anniversary', $wishedAnniv, $myEmpId) ?>
             </div>
@@ -123,13 +124,13 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
   </div>
 </div>
 
-<div class="row g-3 dash-cards dash-cards-equal mt-0">
-  <div class="col-xl-4 col-lg-4 d-flex">
-    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100">
+<div class="row g-3 dash-cards dash-cards-equal">
+  <div class="col-xl-4 col-md-6 d-flex">
+    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100 dash-panel">
       <div class="ep-card-head">
         <span class="ep-card-ico"><i class="fa-solid fa-calendar-check"></i></span>
-        <div><h3>Recent Leave</h3><small>Your last 5 applications</small></div>
-        <a href="<?= url('employee/leave') ?>" class="btn btn-sm btn-soft ms-auto">Apply / View</a>
+        <div class="flex-grow-1 min-w-0"><h3>Recent Leave</h3><small>Your last 5 applications</small></div>
+        <a href="<?= url('employee/leave') ?>" class="btn btn-sm btn-soft flex-shrink-0">Apply / View</a>
       </div>
       <?php if (!$recentLeaves): ?>
         <div class="dash-empty flex-grow-1"><i class="fa-regular fa-calendar"></i>No leave applied yet.</div>
@@ -150,8 +151,8 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
       <?php endif; ?>
     </div>
   </div>
-  <div class="col-xl-4 col-lg-4 d-flex">
-    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100">
+  <div class="col-xl-4 col-md-6 d-flex">
+    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100 dash-panel">
       <div class="ep-card-head">
         <span class="ep-card-ico"><i class="fa-solid fa-bullhorn"></i></span>
         <div><h3>Announcements</h3><small>Latest company notices</small></div>
@@ -162,16 +163,19 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
         <div class="dash-list flex-grow-1">
           <?php foreach ($announcements as $a): ?>
             <div class="dash-item">
-              <span class="di-ico t-orange"><i class="fa-solid fa-bullhorn"></i></span>
-              <div><b><?= e($a['title']) ?></b><p><?= nl2br(e($a['description'])) ?></p></div>
+              <span class="di-ico"><i class="fa-solid fa-bullhorn"></i></span>
+              <div class="min-w-0">
+                <b><?= e($a['title']) ?></b>
+                <p class="dash-clamp"><?= e(mb_strimwidth((string) preg_replace('/\s+/', ' ', strip_tags((string) ($a['description'] ?? ''))), 0, 140, '…')) ?></p>
+              </div>
             </div>
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
     </div>
   </div>
-  <div class="col-xl-4 col-lg-4 d-flex">
-    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100">
+  <div class="col-xl-4 col-md-12 d-flex">
+    <div class="ep-card cp tone-orange flex-fill d-flex flex-column w-100 dash-panel">
       <div class="ep-card-head">
         <span class="ep-card-ico"><i class="fa-solid fa-umbrella-beach"></i></span>
         <div><h3>Holidays</h3><small>Upcoming company holidays</small></div>
@@ -180,10 +184,17 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
         <div class="dash-empty flex-grow-1"><i class="fa-regular fa-calendar"></i>No upcoming holidays.</div>
       <?php else: ?>
         <div class="dash-list flex-grow-1">
-          <?php foreach ($holidays as $h): $ts = strtotime($h['holiday_date']); ?>
+          <?php foreach ($holidays as $h):
+            $ts = strtotime($h['holiday_date']);
+            $toTs = strtotime($h['to_date'] ?? $h['holiday_date']);
+            $same = !$toTs || date('Y-m-d', $toTs) === date('Y-m-d', $ts);
+          ?>
             <div class="dash-item">
               <span class="di-date"><b><?= date('d', $ts) ?></b><?= date('M', $ts) ?></span>
-              <div><b><?= e($h['name']) ?></b><p><?= date('l', $ts) ?></p></div>
+              <div>
+                <b><?= e($h['name']) ?></b>
+                <p><?= $same ? date('l', $ts) : (format_date($h['holiday_date']) . ' – ' . format_date($h['to_date'])) ?></p>
+              </div>
             </div>
           <?php endforeach; ?>
         </div>
@@ -191,4 +202,5 @@ $wishBtn = static function (array $person, string $type, array $already, int $me
     </div>
   </div>
 </div>
+</div><!-- /.emp-dash-lower -->
 </div><!-- /.emp-dash -->

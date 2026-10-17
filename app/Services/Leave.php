@@ -66,7 +66,7 @@ class Leave
     public static function workingDates(int $employeeId, string $from, string $to): array
     {
         $offs = Attendance::weekOffs(Attendance::shiftFor($employeeId));
-        $holidays = array_column(Database::all('SELECT holiday_date FROM holidays WHERE holiday_date BETWEEN ? AND ?', [$from, $to]), 'holiday_date');
+        $holidays = self::holidayDatesBetween($from, $to);
         $dates = [];
         for ($t = strtotime($from); $t <= strtotime($to); $t += 86400) {
             $d = date('Y-m-d', $t);
@@ -75,6 +75,32 @@ class Leave
             }
         }
         return $dates;
+    }
+
+    /** Expand holiday From–To ranges into individual Y-m-d dates overlapping [$from, $to]. */
+    public static function holidayDatesBetween(string $from, string $to): array
+    {
+        $rows = Database::all(
+            'SELECT holiday_date, COALESCE(to_date, holiday_date) AS end_date
+             FROM holidays
+             WHERE holiday_date <= ? AND COALESCE(to_date, holiday_date) >= ?',
+            [$to, $from]
+        );
+        $set = [];
+        foreach ($rows as $r) {
+            $start = strtotime((string) $r['holiday_date']);
+            $end = strtotime((string) $r['end_date']);
+            if ($start === false || $end === false) {
+                continue;
+            }
+            for ($t = $start; $t <= $end; $t += 86400) {
+                $d = date('Y-m-d', $t);
+                if ($d >= $from && $d <= $to) {
+                    $set[$d] = true;
+                }
+            }
+        }
+        return array_keys($set);
     }
 
     public static function countDays(int $employeeId, string $from, string $to, bool $halfDay = false): float
