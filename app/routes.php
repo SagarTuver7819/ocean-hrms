@@ -92,8 +92,10 @@ $router->get('/notifications/{id}/open', ['NotificationController', 'open'], ['A
 
 // Salary
 $router->get('/salary', ['SalaryController', 'index'], ['AuthMiddleware']);
+$router->get('/salary/register', ['SalaryController', 'register'], ['AuthMiddleware']);
 $router->get('/salary/employee/{id}', ['SalaryController', 'employee'], ['AuthMiddleware']);
 $router->post('/salary/employee/{id}', ['SalaryController', 'save'], ['AuthMiddleware']);
+$router->post('/salary/employee/{id}/pt', ['SalaryController', 'savePt'], ['AuthMiddleware']);
 
 // Queries
 $router->get('/queries', ['QueryController', 'index'], ['AuthMiddleware']);

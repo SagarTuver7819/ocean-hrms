@@ -56,27 +56,18 @@ class Payslip
         }
         $from = max($first, (string) $emp['joining_date']);
 
-        $present = $absent = 0.0;
-        foreach (Database::all('SELECT status, punch_in FROM attendance WHERE employee_id = ? AND attendance_date BETWEEN ? AND ?', [$employeeId, $first, $last]) as $r) {
-            if ($r['status'] === 'absent') $absent += 1;
-            elseif ($r['status'] === 'half_day') { $absent += 0.5; $present += 0.5; }
-            elseif ($r['punch_in']) $present += 1;
-        }
+        $asOf = min($last, date('Y-m-d'));
+        $att = SalaryRegister::attendanceForMonth($employeeId, $first, $last, $asOf, (string) ($emp['joining_date'] ?? ''));
+        $present = $att['present'];
+        $absent = $att['absent'];
+        $paidLeave = $att['paid_leave'];
+        $unpaidLeave = $att['unpaid_leave'];
 
-        $paidLeave = $unpaidLeave = 0.0;
-        $leaves = Database::all(
-            "SELECT lr.from_date, lr.to_date, lr.days, lt.is_paid FROM leave_requests lr JOIN leave_types lt ON lt.id = lr.leave_type_id
-             WHERE lr.employee_id = ? AND lr.status = 'approved' AND lr.from_date <= ? AND lr.to_date >= ?",
-            [$employeeId, $last, $first]
-        );
-        foreach ($leaves as $l) {
-            $days = (float) $l['days'] === 0.5 ? 0.5 : count(Leave::workingDates($employeeId, max($l['from_date'], $first), min($l['to_date'], $last)));
-            $l['is_paid'] ? $paidLeave += $days : $unpaidLeave += $days;
-        }
-
-        $workingDays = $from <= $last ? count(Leave::workingDates($employeeId, $from, $last)) : 0;
+        $workingDays = $att['working_days'];
         $lop = min($daysInMonth, $preJoin + $absent + $unpaidLeave);
-        $lopAmount = round($monthly / $daysInMonth * $lop);
+        $lopAmount = $monthly > 0 ? round($monthly / $daysInMonth * $lop) : 0;
+        $pt = $monthly > 0 ? Salary::ptAmount($employeeId) : 0.0;
+        $totalDeduction = $lopAmount + $pt;
 
         return [
             'month' => $month,
@@ -94,7 +85,9 @@ class Payslip
             'lop' => $lop,
             'paid_days' => $daysInMonth - $lop,
             'lop_amount' => $lopAmount,
-            'net' => max(0, $monthly - $lopAmount),
+            'professional_tax' => $pt,
+            'total_deduction' => $totalDeduction,
+            'net' => max(0, $monthly - $totalDeduction),
         ];
     }
 }

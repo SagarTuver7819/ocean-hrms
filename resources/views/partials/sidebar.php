@@ -146,13 +146,14 @@ function group_open(string $page, array $keys): string {
         </div>
       </div>
 
-      <div class="nav-group <?= group_open($page, ['salary']) ?>" data-menu-group="salary payroll monthly">
+      <div class="nav-group <?= group_open($page, ['salary', 'salary-register']) ?>" data-menu-group="salary payroll monthly register">
         <button type="button" class="nav-group-btn">
           <span class="ico t-green"><i class="fa-solid fa-indian-rupee-sign"></i></span>
-          <span class="txt"><b>Salary</b><small>Monthly salary</small></span>
+          <span class="txt"><b>Salary</b><small>Decided · monthly register</small></span>
           <i class="fa-solid fa-chevron-down chev"></i>
         </button>
         <div class="nav-sub">
+          <a href="<?= url('salary/register') ?>" class="<?= nav_active($page, ['salary-register']) ?>">Salary Register</a>
           <a href="<?= url('salary') ?>" class="<?= nav_active($page, ['salary']) ?>">Employee Salary</a>
         </div>
       </div>

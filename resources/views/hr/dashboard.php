@@ -40,6 +40,7 @@
   <a href="<?= url('leave') ?>"><i class="fa-solid fa-calendar-check"></i> Leave Desk</a>
   <a href="<?= url('announcements') ?>"><i class="fa-solid fa-bullhorn"></i> Add Announcement</a>
   <a href="<?= url('queries') ?>"><i class="fa-solid fa-headset"></i> Employee Query</a>
+  <a href="<?= url('salary/register') ?>"><i class="fa-solid fa-table"></i> Salary Register</a>
   <a href="<?= url('salary') ?>"><i class="fa-solid fa-wallet"></i> Employee Salary</a>
   <a href="<?= url('employees') ?>"><i class="fa-solid fa-users"></i> All Employees</a>
 </div>

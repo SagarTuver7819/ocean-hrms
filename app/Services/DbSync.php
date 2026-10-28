@@ -116,6 +116,9 @@ class DbSync
             'leave_types' => [
                 'monthly_accrual' => 'DECIMAL(4,1) NOT NULL DEFAULT 0 AFTER days_per_year',
             ],
+            'employee_salaries' => [
+                'professional_tax' => 'DECIMAL(12,2) NOT NULL DEFAULT 200 AFTER monthly_salary',
+            ],
         ];
         foreach ($portalCols as $table => $cols) {
             foreach ($cols as $col => $def) {
@@ -312,7 +315,11 @@ class DbSync
         $st->execute([$genId]);
         $log[] = 'ok · assigned General shift to other employees (' . $st->rowCount() . ')';
 
-        $syncVersion = '2026-10-28-intern-4h-flex-v3';
+        if ($hasColumn('employee_salaries', 'professional_tax')) {
+            $log[] = 'ok · employee_salaries.professional_tax (default ₹200, editable)';
+        }
+
+        $syncVersion = '2026-10-28-salary-pt-200-v4';
         $db->prepare(
             "INSERT INTO settings (setting_key, setting_value, updated_at) VALUES ('db_sync_version', ?, NOW())
              ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()"
