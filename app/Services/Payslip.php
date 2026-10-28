@@ -57,17 +57,20 @@ class Payslip
         $from = max($first, (string) $emp['joining_date']);
 
         $asOf = min($last, date('Y-m-d'));
-        $att = SalaryRegister::attendanceForMonth($employeeId, $first, $last, $asOf, (string) ($emp['joining_date'] ?? ''));
+        $att = SalaryRegister::dayBreakdown($employeeId, $first, $last, $asOf, (string) ($emp['joining_date'] ?? ''));
         $present = $att['present'];
         $absent = $att['absent'];
-        $paidLeave = $att['paid_leave'];
-        $unpaidLeave = $att['unpaid_leave'];
+        $paidLeave = $att['leave'];
+        $unpaidLeave = $att['sick_leave'];
+        $weekOff = $att['week_off'];
+        $holiday = $att['holiday'];
 
-        $workingDays = $att['working_days'];
-        $lop = min($daysInMonth, $preJoin + $absent + $unpaidLeave);
-        $lopAmount = $monthly > 0 ? round($monthly / $daysInMonth * $lop) : 0;
-        $pt = $monthly > 0 ? Salary::ptAmount($employeeId) : 0.0;
-        $totalDeduction = $lopAmount + $pt;
+        $totalDays = round($present + $weekOff + $holiday + $paidLeave, 1);
+        $gross = $monthly > 0 ? round($monthly * $totalDays / $daysInMonth, 2) : 0.0;
+        $pt = $gross > 0 ? Salary::ptAmount($employeeId) : 0.0;
+        $lop = round($absent + $unpaidLeave + $preJoin, 1);
+        $lopAmount = max(0, round($monthly - $gross, 2)); // difference vs full month for slip display
+        $totalDeduction = round($lopAmount + $pt, 2);
 
         return [
             'month' => $month,
@@ -75,19 +78,21 @@ class Payslip
             'employee' => $emp,
             'monthly' => $monthly,
             'days_in_month' => $daysInMonth,
-            'working_days' => $workingDays,
-            'offs' => max(0, $daysInMonth - $preJoin - $workingDays),
+            'working_days' => $att['working_days'],
+            'offs' => $weekOff,
+            'holiday' => $holiday,
             'present' => $present,
             'paid_leave' => $paidLeave,
             'unpaid_leave' => $unpaidLeave,
             'absent' => $absent,
             'pre_join' => $preJoin,
             'lop' => $lop,
-            'paid_days' => $daysInMonth - $lop,
+            'paid_days' => $totalDays,
+            'gross' => $gross,
             'lop_amount' => $lopAmount,
             'professional_tax' => $pt,
             'total_deduction' => $totalDeduction,
-            'net' => max(0, $monthly - $totalDeduction),
+            'net' => max(0, round($gross - $pt, 2)),
         ];
     }
 }

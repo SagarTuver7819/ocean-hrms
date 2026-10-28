@@ -1,20 +1,22 @@
 <?php
-$num = fn($n) => rtrim(rtrim(number_format((float) $n, 1), '0'), '.');
+$num = fn($n) => number_format((float) $n, 1);
 $t = $register['totals'];
 $prev = date('Y-m', strtotime($month . '-01 -1 month'));
 $next = date('Y-m', strtotime($month . '-01 +1 month'));
-$q = static function (string $m, bool $interns): string {
-    return url('salary/register?month=' . $m . ($interns ? '&include_interns=1' : ''));
+$q = static function (string $m, bool $interns, bool $pdf = false): string {
+    $base = $pdf ? 'salary/register/pdf' : 'salary/register';
+    return url($base . '?month=' . $m . ($interns ? '&include_interns=1' : ''));
 };
+$pdfUrl = $q($month, $includeInterns, true);
 ?>
 <div class="page-head">
   <div>
     <h1>Monthly Salary Register</h1>
-    <p><?= e($register['label']) ?> · Decided salary − LOP from attendance · Interns <?= $includeInterns ? 'included' : 'hidden' ?></p>
+    <p><?= e($register['label']) ?> · <?= e($register['formula']) ?></p>
   </div>
   <div class="d-flex gap-2 flex-wrap align-items-center">
+    <a href="<?= e($pdfUrl) ?>" target="_blank" class="btn btn-sm btn-brand"><i class="fa-solid fa-file-pdf me-1"></i>Download PDF</a>
     <a href="<?= url('salary') ?>" class="btn btn-sm btn-outline-ink"><i class="fa-solid fa-wallet me-1"></i>Employee Salary</a>
-    <a href="<?= url('attendance/summary?month=' . $month) ?>" class="btn btn-sm btn-brand"><i class="fa-solid fa-calendar-check me-1"></i>Attendance Summary</a>
   </div>
 </div>
 
@@ -38,124 +40,120 @@ $q = static function (string $m, bool $interns): string {
     </div>
     <div class="col-auto">
       <label class="form-label d-block">&nbsp;</label>
-      <button class="btn btn-sm btn-brand"><i class="fa-solid fa-filter me-1"></i>Apply</button>
+      <a href="<?= e($pdfUrl) ?>" target="_blank" class="btn btn-sm btn-outline-ink"><i class="fa-solid fa-print me-1"></i>Print / PDF</a>
     </div>
     <div class="col-12">
       <small class="text-muted fw-semibold">
-        As of <?= format_date($register['as_of']) ?> ·
-        Calendar days <?= (int) $register['days_in_month'] ?> ·
-        Net = Decided − LOP − PT (default ₹200, editable) ·
-        Week-offs / holidays / Paid Leave are paid.
+        As of <?= format_date($register['as_of']) ?> · Month days <?= (int) $register['days_in_month'] ?> ·
+        Leave = Paid Leave only · Sick Leave unpaid (not in Gross) · Deduction = PT only · No UAN
       </small>
     </div>
   </form>
 </div>
 
 <div class="metric-row cols-6">
-  <div class="metric-card metric-dark"><span class="m-ico"><i class="fa-solid fa-users"></i></span><div class="label">Employees</div><div class="value"><?= (int) $t['employees'] ?></div><div class="sub">Salary set: <?= (int) $t['with_salary'] ?><?= $includeInterns ? ' · Interns ' . (int) $t['interns'] : '' ?></div></div>
+  <div class="metric-card metric-dark"><span class="m-ico"><i class="fa-solid fa-users"></i></span><div class="label">Employees</div><div class="value"><?= (int) $t['employees'] ?></div><div class="sub">Salary set: <?= (int) $t['with_salary'] ?></div></div>
   <div class="metric-card metric-orange"><span class="m-ico"><i class="fa-solid fa-file-invoice-dollar"></i></span><div class="label">Decided Total</div><div class="value" style="font-size:18px"><?= money($t['decided']) ?></div><div class="sub">fixed monthly</div></div>
-  <div class="metric-card metric-red"><span class="m-ico"><i class="fa-solid fa-user-xmark"></i></span><div class="label">LOP Amount</div><div class="value" style="font-size:18px"><?= money($t['lop_amount']) ?></div><div class="sub">LOP days <?= $num($t['lop']) ?></div></div>
-  <div class="metric-card metric-blue"><span class="m-ico"><i class="fa-solid fa-receipt"></i></span><div class="label">PT Total</div><div class="value" style="font-size:18px"><?= money($t['pt'] ?? 0) ?></div><div class="sub">Professional Tax</div></div>
-  <div class="metric-card metric-sky"><span class="m-ico"><i class="fa-solid fa-user-check"></i></span><div class="label">Present</div><div class="value"><?= $num($t['present']) ?></div><div class="sub">Half day: <?= $num($t['half_day']) ?></div></div>
-  <div class="metric-card metric-green"><span class="m-ico"><i class="fa-solid fa-hand-holding-dollar"></i></span><div class="label">Net Payable</div><div class="value" style="font-size:18px"><?= money($t['net']) ?></div><div class="sub">after LOP + PT</div></div>
+  <div class="metric-card metric-sky"><span class="m-ico"><i class="fa-solid fa-calendar-day"></i></span><div class="label">Total Days</div><div class="value"><?= $num($t['total_days']) ?></div><div class="sub">P + Off + Hol + Leave</div></div>
+  <div class="metric-card metric-teal"><span class="m-ico"><i class="fa-solid fa-coins"></i></span><div class="label">Gross</div><div class="value" style="font-size:18px"><?= money($t['gross']) ?></div><div class="sub">earned</div></div>
+  <div class="metric-card metric-blue"><span class="m-ico"><i class="fa-solid fa-receipt"></i></span><div class="label">PT Total</div><div class="value" style="font-size:18px"><?= money($t['pt']) ?></div><div class="sub">only deduction</div></div>
+  <div class="metric-card metric-green"><span class="m-ico"><i class="fa-solid fa-hand-holding-dollar"></i></span><div class="label">Net Payable</div><div class="value" style="font-size:18px"><?= money($t['net']) ?></div><div class="sub">Gross − PT</div></div>
 </div>
 
-<div class="panel table-card">
+<div class="panel table-card sal-reg-panel">
   <div class="panel-header">
-    <h3>Salary Register · <?= e($register['label']) ?></h3>
-    <small class="text-muted">Export Excel / PDF from table tools</small>
+    <h3>Salaried Persons (Fixed) · <?= e($register['label']) ?></h3>
+    <small class="text-muted"><?= (int) $t['employees'] ?> employees</small>
   </div>
-  <div class="panel-body">
+  <div class="panel-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover datatable dt-export align-middle mb-0">
+      <table class="table table-hover sal-reg-table datatable dt-export align-middle mb-0">
         <thead>
-          <tr>
-            <th>Sr.</th>
-            <th>Employee</th>
-            <th>Type</th>
-            <th>Decided Salary</th>
-            <th>Working Days</th>
-            <th>Present</th>
-            <th>Half Day</th>
-            <th>Paid Leave</th>
-            <th>Sick / Unpaid</th>
+          <tr class="sal-h-group">
+            <th colspan="4" class="sal-g-info">Employee</th>
+            <th colspan="6" class="sal-g-earn">Earning</th>
+            <th colspan="2" class="sal-g-gross">Gross</th>
+            <th colspan="2" class="sal-g-ded">Deduction</th>
+            <th class="sal-g-net">Net</th>
+            <th colspan="2" class="sal-g-bank">Bank</th>
+            <th class="sal-g-info"></th>
+          </tr>
+          <tr class="sal-h-cols">
+            <th>Emp Code</th>
+            <th>Employee Name</th>
+            <th>Desig.</th>
+            <th>D.O.J.</th>
+            <th>Salary</th>
+            <th>P.Days</th>
+            <th>W.Off</th>
+            <th>Holiday</th>
+            <th>Leave</th>
             <th>Absent</th>
-            <th>LOP Days</th>
-            <th>LOP ₹</th>
-            <th>PT ₹</th>
-            <th>Paid Days</th>
-            <th>Net Payable</th>
+            <th>Total Days</th>
+            <th>Gross</th>
+            <th>P.T.</th>
+            <th>Tot. Ded.</th>
+            <th>Net</th>
+            <th>A/C No.</th>
+            <th>IFSC</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
         <?php foreach ($register['rows'] as $i => $r): ?>
           <tr class="<?= !$r['has_salary'] ? 'sal-row-nosalary' : '' ?>">
-            <td><?= $i + 1 ?></td>
-            <td class="att-emp">
+            <td class="fw-bold"><?= e($r['employee_code']) ?></td>
+            <td>
               <b><?= e($r['name']) ?></b>
-              <small><?= e($r['employee_code']) ?> · <?= e($r['department_name']) ?><?= $r['designation_name'] ? ' · ' . e($r['designation_name']) : '' ?></small>
+              <?php if ($r['is_intern']): ?><small class="d-block text-warning">Intern</small><?php endif; ?>
+              <small class="d-block text-muted"><?= e($r['department_name']) ?></small>
             </td>
-            <td>
-              <?php if ($r['is_intern']): ?>
-                <span class="badge-status badge-late">Intern</span>
-              <?php else: ?>
-                <span class="badge-status badge-present">Staff</span>
-              <?php endif; ?>
-            </td>
-            <td class="fw-bold <?= $r['has_salary'] ? 'text-success' : 'text-muted' ?>">
-              <?= $r['has_salary'] ? money($r['monthly_salary']) : 'Not set' ?>
-            </td>
-            <td><?= (int) $r['working_days'] ?></td>
-            <td><?= $num($r['present']) ?></td>
-            <td><?= $num($r['half_day']) ?></td>
-            <td><?= $num($r['paid_leave']) ?></td>
-            <td class="<?= $r['unpaid_leave'] > 0 ? 'text-danger fw-bold' : '' ?>"><?= $num($r['unpaid_leave']) ?></td>
-            <td class="<?= $r['absent'] > 0 ? 'text-danger fw-bold' : '' ?>"><?= $num($r['absent']) ?></td>
-            <td class="fw-bold"><?= $num($r['lop']) ?></td>
-            <td class="<?= $r['lop_amount'] > 0 ? 'text-danger' : '' ?>"><?= $r['has_salary'] ? money($r['lop_amount']) : '—' ?></td>
-            <td>
+            <td><small><?= e($r['designation_name'] ?: '—') ?></small></td>
+            <td data-order="<?= e($r['joining_date'] ?? '') ?>"><small><?= $r['joining_date'] ? date('d-m-Y', strtotime($r['joining_date'])) : '—' ?></small></td>
+            <td class="fw-bold text-success text-end"><?= $r['has_salary'] ? money($r['monthly_salary']) : '—' ?></td>
+            <td class="text-end"><?= $num($r['present']) ?></td>
+            <td class="text-end"><?= $num($r['week_off']) ?></td>
+            <td class="text-end"><?= $num($r['holiday']) ?></td>
+            <td class="text-end" title="Paid Leave"><?= $num($r['leave']) ?></td>
+            <td class="text-end <?= $r['absent'] > 0 ? 'text-danger' : '' ?>"><?= $num($r['absent']) ?></td>
+            <td class="fw-bold text-end"><?= $num($r['total_days']) ?></td>
+            <td class="fw-bold text-end"><?= $r['has_salary'] ? money($r['gross']) : '—' ?></td>
+            <td class="text-end">
               <?php if ($r['has_salary']): ?>
                 <form method="post" action="<?= url('salary/employee/' . $r['employee_id'] . '/pt') ?>" class="sal-pt-edit">
                   <?= csrf_field() ?>
                   <input type="hidden" name="month" value="<?= e($month) ?>">
                   <?php if ($includeInterns): ?><input type="hidden" name="include_interns" value="1"><?php endif; ?>
                   <input type="number" name="professional_tax" class="form-control form-control-sm" min="0" step="1"
-                    value="<?= (int) $r['professional_tax'] ?>" title="Edit PT" onchange="this.form.requestSubmit()">
+                    value="<?= (int) $r['pt_configured'] ?>" title="Edit PT" onchange="this.form.requestSubmit()">
                 </form>
-              <?php else: ?>
-                <span class="text-muted">—</span>
-              <?php endif; ?>
+              <?php else: ?>—<?php endif; ?>
             </td>
-            <td><?= $num($r['paid_days']) ?></td>
-            <td class="fw-bold <?= $r['has_salary'] ? 'text-success' : 'text-muted' ?>">
-              <?= $r['has_salary'] ? money($r['net']) : '—' ?>
-            </td>
+            <td class="text-end text-danger"><?= $r['has_salary'] ? money($r['professional_tax']) : '—' ?></td>
+            <td class="fw-bold text-end text-success"><?= $r['has_salary'] ? money($r['net']) : '—' ?></td>
+            <td><small class="font-monospace"><?= e($r['account_number'] ?: '—') ?></small></td>
+            <td><small class="font-monospace"><?= e($r['ifsc_code'] ?: '—') ?></small></td>
             <td>
-              <div class="action-btns">
-                <a href="<?= url('salary/employee/' . $r['employee_id']) ?>" class="btn-icon" title="Set / edit salary &amp; PT"><i class="fa-solid fa-pen"></i></a>
-                <a href="<?= url('attendance/report?employee_id=' . $r['employee_id'] . '&from=' . $month . '-01&to=' . date('Y-m-t', strtotime($month . '-01'))) ?>" class="btn-icon tone-green" title="Attendance"><i class="fa-solid fa-calendar-days"></i></a>
-              </div>
+              <a href="<?= url('salary/employee/' . $r['employee_id']) ?>" class="btn-icon" title="Edit salary / PT"><i class="fa-solid fa-pen"></i></a>
             </td>
           </tr>
         <?php endforeach; ?>
         </tbody>
         <tfoot>
           <tr class="sal-reg-foot">
-            <th colspan="3">Total</th>
-            <th><?= money($t['decided']) ?></th>
+            <th colspan="4">Total</th>
+            <th class="text-end"><?= money($t['decided']) ?></th>
+            <th class="text-end"><?= $num($t['present']) ?></th>
+            <th class="text-end"><?= $num($t['week_off']) ?></th>
+            <th class="text-end"><?= $num($t['holiday']) ?></th>
+            <th class="text-end"><?= $num($t['leave']) ?></th>
+            <th class="text-end"><?= $num($t['absent']) ?></th>
+            <th class="text-end"><?= $num($t['total_days']) ?></th>
+            <th class="text-end"><?= money($t['gross']) ?></th>
             <th></th>
-            <th><?= $num($t['present']) ?></th>
-            <th><?= $num($t['half_day']) ?></th>
-            <th><?= $num($t['paid_leave']) ?></th>
-            <th><?= $num($t['unpaid_leave']) ?></th>
-            <th><?= $num($t['absent']) ?></th>
-            <th><?= $num($t['lop']) ?></th>
-            <th><?= money($t['lop_amount']) ?></th>
-            <th><?= money($t['pt'] ?? 0) ?></th>
-            <th></th>
-            <th><?= money($t['net']) ?></th>
-            <th></th>
+            <th class="text-end"><?= money($t['pt']) ?></th>
+            <th class="text-end"><?= money($t['net']) ?></th>
+            <th colspan="3"></th>
           </tr>
         </tfoot>
       </table>
@@ -164,15 +162,24 @@ $q = static function (string $m, bool $interns): string {
 </div>
 
 <style>
+.sal-reg-table { font-size: 12.5px; }
+.sal-reg-table th, .sal-reg-table td { white-space: nowrap; vertical-align: middle; }
+.sal-h-group th { text-align: center; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; border-bottom: 0 !important; padding: 8px 10px !important; }
+.sal-g-info { background: #eef2f7 !important; color: #334155; }
+.sal-g-earn { background: #dcfce7 !important; color: #166534; }
+.sal-g-gross { background: #bbf7d0 !important; color: #14532d; }
+.sal-g-ded { background: #fef3c7 !important; color: #92400e; }
+.sal-g-net { background: #ffedd5 !important; color: #9a3412; }
+.sal-g-bank { background: #e2e8f0 !important; color: #334155; }
+.sal-h-cols th { background: #f8fafc !important; font-size: 11px; font-weight: 800; }
 .sal-row-nosalary td { background: #fafafa; }
 .sal-reg-foot th {
   background: #fff7ea !important; border-top: 2px solid #f5c56a !important;
-  font-weight: 800; color: var(--ink); white-space: nowrap;
+  font-weight: 800; color: var(--ink);
 }
-.sal-pt-edit { margin: 0; min-width: 88px; }
+.sal-pt-edit { margin: 0; min-width: 72px; }
 .sal-pt-edit .form-control {
   font-weight: 800; text-align: right; border-color: #fde7c2; background: #fffaf2;
-  padding: 4px 8px; height: 32px;
+  padding: 2px 6px; height: 28px; font-size: 12px;
 }
-.sal-pt-edit .form-control:focus { border-color: var(--brand); box-shadow: 0 0 0 .2rem rgba(245,160,27,.18); }
 </style>

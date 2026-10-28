@@ -93,17 +93,18 @@ $account = !empty($bank['account_number']) ? str_repeat('X', max(0, strlen($bank
       <thead><tr><th>Earnings</th><th class="amt">Amount</th><th class="sep">Deductions</th><th class="amt">Amount</th></tr></thead>
       <tbody>
         <tr>
-          <td>Monthly Salary (Fixed)</td><td class="amt"><?= $rupee($slip['monthly']) ?></td>
-          <td class="sep">Loss of Pay (<?= $num($slip['lop']) ?> day<?= $slip['lop'] == 1 ? '' : 's' ?>)<?php if ($slip['pre_join']): ?><br><small style="color:#6b7280">incl. <?= $slip['pre_join'] ?> day(s) before joining</small><?php endif; ?></td>
-          <td class="amt"><?= $rupee($slip['lop_amount']) ?></td>
-        </tr>
-        <tr>
-          <td></td><td class="amt"></td>
+          <td>Decided Monthly Salary</td><td class="amt"><?= $rupee($slip['monthly']) ?></td>
           <td class="sep">Professional Tax (PT)</td>
           <td class="amt"><?= $rupee($slip['professional_tax'] ?? 0) ?></td>
         </tr>
+        <tr>
+          <td>Gross (<?= $num($slip['paid_days']) ?> / <?= (int) $slip['days_in_month'] ?> days)<br><small style="color:#6b7280">P.Days + W.Off + Holiday + Leave</small></td>
+          <td class="amt"><?= $rupee($slip['gross'] ?? max(0, $slip['monthly'] - $slip['lop_amount'])) ?></td>
+          <td class="sep"></td>
+          <td class="amt"></td>
+        </tr>
       </tbody>
-      <tfoot><tr><td>Gross Earnings</td><td class="amt"><?= $rupee($slip['monthly']) ?></td><td class="sep">Total Deductions</td><td class="amt"><?= $rupee($slip['total_deduction'] ?? $slip['lop_amount']) ?></td></tr></tfoot>
+      <tfoot><tr><td>Gross Earnings</td><td class="amt"><?= $rupee($slip['gross'] ?? max(0, $slip['monthly'] - $slip['lop_amount'])) ?></td><td class="sep">Total Deductions (PT)</td><td class="amt"><?= $rupee($slip['professional_tax'] ?? 0) ?></td></tr></tfoot>
     </table>
   </div>
 

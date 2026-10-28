@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Core\Database;
 
 /**
- * Monthly salary register from decided salary + attendance.
- * Interns excluded by default (optional include). LOP = pre-join + absent + unpaid leave.
+ * Monthly salary register (accounts-style):
+ * Gross = Decided × (P.Days + W.Off + Holiday + Leave) ÷ month days
+ * Deduction = Professional Tax only · Net = Gross − PT
+ * Interns excluded by default.
  */
 class SalaryRegister
 {
@@ -24,16 +26,18 @@ class SalaryRegister
         $daysInMonth = (int) date('t', strtotime($first));
 
         $sql = "SELECT e.id, e.employee_code, e.first_name, e.last_name, e.joining_date, e.employment_type, e.status,
-                       d.name AS department_name, g.name AS designation_name, s.name AS shift_name
+                       d.name AS department_name, g.name AS designation_name, s.name AS shift_name,
+                       b.bank_name, b.account_number, b.ifsc_code, b.account_holder_name
                 FROM employees e
                 LEFT JOIN departments d ON d.id = e.department_id
                 LEFT JOIN designations g ON g.id = e.designation_id
                 LEFT JOIN shifts s ON s.id = e.shift_id
+                LEFT JOIN employee_bank_details b ON b.employee_id = e.id
                 WHERE e.status = 'active'";
         if (!$includeInterns) {
             $sql .= " AND e.employment_type <> 'intern'";
         }
-        $sql .= ' ORDER BY e.first_name, e.last_name';
+        $sql .= ' ORDER BY d.name, e.first_name, e.last_name';
         $employees = Database::all($sql);
 
         $rows = [];
@@ -43,14 +47,14 @@ class SalaryRegister
             'interns' => 0,
             'decided' => 0.0,
             'present' => 0.0,
-            'absent' => 0.0,
-            'half_day' => 0.0,
-            'paid_leave' => 0.0,
-            'unpaid_leave' => 0.0,
-            'lop' => 0.0,
-            'lop_amount' => 0.0,
+            'week_off' => 0.0,
+            'holiday' => 0.0,
+            'leave' => 0.0,
+            'total_days' => 0.0,
+            'gross' => 0.0,
             'pt' => 0.0,
             'net' => 0.0,
+            'absent' => 0.0,
         ];
 
         foreach ($employees as $emp) {
@@ -59,17 +63,19 @@ class SalaryRegister
             $salaryRow = Salary::current($empId);
             $monthly = Payslip::monthlySalaryFor($empId, $last);
             $pt = $monthly > 0 ? Salary::ptAmount($empId, $salaryRow) : 0.0;
-            $att = self::attendanceForMonth($empId, $first, $last, $asOf, (string) ($emp['joining_date'] ?? ''));
+            $att = self::dayBreakdown($empId, $first, $last, $asOf, (string) ($emp['joining_date'] ?? ''));
 
-            $preJoin = 0;
-            if (!empty($emp['joining_date']) && $emp['joining_date'] > $first && $emp['joining_date'] <= $last) {
-                $preJoin = (int) ((strtotime($emp['joining_date']) - strtotime($first)) / 86400);
-            }
-
-            $lop = round(min($daysInMonth, $preJoin + $att['absent'] + $att['unpaid_leave']), 1);
-            $perDay = $daysInMonth > 0 ? $monthly / $daysInMonth : 0;
-            $lopAmount = $monthly > 0 ? round($perDay * $lop) : 0;
-            $net = $monthly > 0 ? max(0, round($monthly - $lopAmount - $pt)) : 0;
+            // Paid earning days for Gross (Sick/unpaid leave not included — unpaid)
+            $totalDays = round(
+                $att['present'] + $att['week_off'] + $att['holiday'] + $att['leave'],
+                1
+            );
+            $gross = $monthly > 0 && $daysInMonth > 0
+                ? round($monthly * $totalDays / $daysInMonth, 2)
+                : 0.0;
+            // PT only when there is gross payable
+            $ptApply = $gross > 0 ? $pt : 0.0;
+            $net = max(0, round($gross - $ptApply, 2));
 
             $row = [
                 'employee_id' => $empId,
@@ -83,37 +89,39 @@ class SalaryRegister
                 'joining_date' => $emp['joining_date'],
                 'monthly_salary' => $monthly,
                 'has_salary' => $monthly > 0,
-                'professional_tax' => $pt,
-                'days_in_month' => $daysInMonth,
-                'working_days' => $att['working_days'],
                 'present' => $att['present'],
-                'half_day' => $att['half_day'],
-                'paid_leave' => $att['paid_leave'],
-                'unpaid_leave' => $att['unpaid_leave'],
+                'week_off' => $att['week_off'],
+                'holiday' => $att['holiday'],
+                'leave' => $att['leave'],
+                'sick_leave' => $att['sick_leave'],
                 'absent' => $att['absent'],
-                'pre_join' => $preJoin,
-                'lop' => $lop,
-                'paid_days' => round($daysInMonth - $lop, 1),
-                'lop_amount' => $lopAmount,
+                'total_days' => $totalDays,
+                'gross' => $gross,
+                'professional_tax' => $ptApply,
+                'pt_configured' => $pt,
                 'net' => $net,
+                'bank_name' => $emp['bank_name'] ?? '',
+                'account_number' => $emp['account_number'] ?? '',
+                'ifsc_code' => $emp['ifsc_code'] ?? '',
+                'account_holder_name' => $emp['account_holder_name'] ?? '',
             ];
 
             $rows[] = $row;
             $totals['employees']++;
             $totals['interns'] += $isIntern ? 1 : 0;
+            $totals['present'] += $att['present'];
+            $totals['week_off'] += $att['week_off'];
+            $totals['holiday'] += $att['holiday'];
+            $totals['leave'] += $att['leave'];
+            $totals['total_days'] += $totalDays;
+            $totals['absent'] += $att['absent'];
             if ($monthly > 0) {
                 $totals['with_salary']++;
                 $totals['decided'] += $monthly;
-                $totals['lop_amount'] += $lopAmount;
-                $totals['pt'] += $pt;
+                $totals['gross'] += $gross;
+                $totals['pt'] += $ptApply;
                 $totals['net'] += $net;
             }
-            $totals['present'] += $att['present'];
-            $totals['absent'] += $att['absent'];
-            $totals['half_day'] += $att['half_day'];
-            $totals['paid_leave'] += $att['paid_leave'];
-            $totals['unpaid_leave'] += $att['unpaid_leave'];
-            $totals['lop'] += $lop;
         }
 
         return [
@@ -124,15 +132,29 @@ class SalaryRegister
             'include_interns' => $includeInterns,
             'rows' => $rows,
             'totals' => $totals,
+            'formula' => 'Gross = Decided Salary × (P.Days + W.Off + Holiday + Leave) ÷ month days · Net = Gross − PT',
         ];
     }
 
-    /** Attendance + leave for salary (displayStatus so intern 4h / half-day stay correct). */
-    public static function attendanceForMonth(int $empId, string $first, string $last, string $asOf, string $joiningDate): array
+    /**
+     * Calendar breakdown for salary:
+     * present / week_off / holiday / leave (paid) / sick_leave (unpaid) / absent
+     */
+    public static function dayBreakdown(int $empId, string $first, string $last, string $asOf, string $joiningDate): array
     {
         $from = $joiningDate && $joiningDate > $first ? $joiningDate : $first;
-        $workingDates = $from <= $asOf ? Leave::workingDates($empId, $from, $asOf) : [];
+        if ($from > $asOf) {
+            return [
+                'present' => 0.0, 'week_off' => 0.0, 'holiday' => 0.0,
+                'leave' => 0.0, 'sick_leave' => 0.0, 'absent' => 0.0,
+                'working_days' => 0,
+            ];
+        }
+
         $shift = Attendance::shiftFor($empId);
+        $weekOffs = Attendance::weekOffs($shift);
+        $halfWeekOffs = Attendance::halfWeekOffs($shift);
+        $holidays = array_flip(Leave::holidayDatesBetween($from, $asOf));
 
         $byDate = [];
         foreach (Database::all(
@@ -142,44 +164,99 @@ class SalaryRegister
             $byDate[$r['attendance_date']] = $r;
         }
 
-        $leaveDates = []; // date => is_paid
-        $paidLeave = $unpaidLeave = 0.0;
+        // Approved leave map: date => 'paid'|'sick'
+        $leaveMap = [];
         $leaves = Database::all(
-            "SELECT lr.from_date, lr.to_date, lr.days, lt.is_paid
+            "SELECT lr.from_date, lr.to_date, lr.days, lt.is_paid, lt.code
              FROM leave_requests lr
              JOIN leave_types lt ON lt.id = lr.leave_type_id
              WHERE lr.employee_id = ? AND lr.status = 'approved' AND lr.from_date <= ? AND lr.to_date >= ?",
-            [$empId, $last, $first]
+            [$empId, $asOf, $from]
         );
         foreach ($leaves as $l) {
-            $rangeFrom = max($l['from_date'], $first, $from);
+            $rangeFrom = max($l['from_date'], $from);
             $rangeTo = min($l['to_date'], $asOf);
             if ($rangeTo < $rangeFrom) {
                 continue;
             }
             $half = (float) $l['days'] === 0.5 && $l['from_date'] === $l['to_date'];
-            $days = Leave::countDays($empId, $rangeFrom, $rangeTo, $half);
-            if ($l['is_paid']) {
-                $paidLeave += $days;
-            } else {
-                $unpaidLeave += $days;
-            }
             foreach (Leave::workingDates($empId, $rangeFrom, $rangeTo) as $ld) {
-                $leaveDates[$ld] = (bool) $l['is_paid'];
+                $leaveMap[$ld] = [
+                    'paid' => (bool) $l['is_paid'],
+                    'weight' => ($half && $ld === $l['from_date'] && $l['from_date'] === $l['to_date'])
+                        ? 0.5
+                        : Leave::dayWeight($empId, $ld),
+                ];
             }
         }
 
-        $present = $halfDay = $absent = 0.0;
-        foreach ($workingDates as $d) {
-            if (isset($leaveDates[$d])) {
+        $present = $weekOff = $holiday = $leave = $sick = $absent = 0.0;
+        $workingDayCount = 0;
+
+        for ($t = strtotime($from); $t <= strtotime($asOf); $t += 86400) {
+            $d = date('Y-m-d', $t);
+            $w = (int) date('w', $t);
+            $isWeekOff = in_array($w, $weekOffs, true);
+            $isHalfOff = in_array($w, $halfWeekOffs, true);
+            $isHoliday = isset($holidays[$d]);
+
+            if ($isWeekOff) {
+                $weekOff += 1.0;
                 continue;
             }
+            if ($isHoliday) {
+                $holiday += 1.0;
+                continue;
+            }
+            if ($isHalfOff) {
+                // Half week-off day: 0.5 off + remaining half can be present/leave/absent
+                $weekOff += 0.5;
+                $workingDayCount += 0.5;
+                if (isset($leaveMap[$d])) {
+                    $wLeave = min(0.5, (float) $leaveMap[$d]['weight']);
+                    if ($leaveMap[$d]['paid']) {
+                        $leave += $wLeave;
+                    } else {
+                        $sick += $wLeave;
+                    }
+                    continue;
+                }
+                $r = $byDate[$d] ?? null;
+                if ($r && !empty($r['punch_in'])) {
+                    $status = Attendance::displayStatus($r, $shift, $empId, empty($r['punch_out']));
+                    if ($status === 'half_day' || $status === 'present' || $status === 'late') {
+                        // Cap credit for half-off day at 0.5 present for salary share of that day
+                        $present += ($status === 'half_day') ? 0.25 : 0.5;
+                    } elseif ($status === 'absent') {
+                        $absent += 0.5;
+                    }
+                } else {
+                    $absent += 0.5;
+                }
+                continue;
+            }
+
+            // Full working day
+            $workingDayCount++;
+            if (isset($leaveMap[$d])) {
+                $wLeave = (float) $leaveMap[$d]['weight'];
+                if ($leaveMap[$d]['paid']) {
+                    $leave += $wLeave;
+                } else {
+                    $sick += $wLeave;
+                    // unpaid leave does not earn salary — treat remainder as absent if half
+                    if ($wLeave < 1) {
+                        $absent += (1 - $wLeave);
+                    }
+                }
+                continue;
+            }
+
             $r = $byDate[$d] ?? null;
             if ($r && !empty($r['punch_in'])) {
                 $status = Attendance::displayStatus($r, $shift, $empId, empty($r['punch_out']));
                 if ($status === 'half_day') {
                     $present += 0.5;
-                    $halfDay += 1;
                     $absent += 0.5;
                 } elseif ($status === 'absent') {
                     $absent += 1;
@@ -192,12 +269,27 @@ class SalaryRegister
         }
 
         return [
-            'working_days' => count($workingDates),
             'present' => round($present, 1),
-            'half_day' => round($halfDay, 1),
+            'week_off' => round($weekOff, 1),
+            'holiday' => round($holiday, 1),
+            'leave' => round($leave, 1),
+            'sick_leave' => round($sick, 1),
             'absent' => round($absent, 1),
-            'paid_leave' => round($paidLeave, 1),
-            'unpaid_leave' => round($unpaidLeave, 1),
+            'working_days' => (int) round($workingDayCount),
+        ];
+    }
+
+    /** @deprecated use dayBreakdown — kept for Payslip compatibility */
+    public static function attendanceForMonth(int $empId, string $first, string $last, string $asOf, string $joiningDate): array
+    {
+        $b = self::dayBreakdown($empId, $first, $last, $asOf, $joiningDate);
+        return [
+            'working_days' => $b['working_days'],
+            'present' => $b['present'],
+            'half_day' => 0.0,
+            'absent' => $b['absent'],
+            'paid_leave' => $b['leave'],
+            'unpaid_leave' => $b['sick_leave'],
         ];
     }
 }

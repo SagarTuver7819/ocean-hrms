@@ -55,6 +55,26 @@ class SalaryController extends Controller
         ]);
     }
 
+    /** Print / Save as PDF (browser print). */
+    public function registerPdf(): void
+    {
+        $this->guard('salary.view');
+        $month = (string) $this->input('month', date('Y-m'));
+        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $month = date('Y-m');
+        }
+        $includeInterns = (bool) $this->input('include_interns');
+        $data = SalaryRegister::build($month, $includeInterns);
+        $app = require dirname(__DIR__) . '/Config/app.php';
+        $this->view('hr/salary/register-pdf', [
+            'register' => $data,
+            'month' => $data['month'],
+            'includeInterns' => $includeInterns,
+            'letterhead' => \App\Services\Letterhead::config(),
+            'company' => $app['company'] ?? 'Ocean Infotech',
+        ], null);
+    }
+
     public function employee(string $id): void
     {
         $this->guard('salary.view');
