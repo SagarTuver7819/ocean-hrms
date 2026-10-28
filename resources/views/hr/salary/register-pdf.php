@@ -15,13 +15,20 @@ $company = $company ?? 'Ocean Infotech';
     :root {
       --brand: #F5A01B;
       --ink: #211F23;
-      --peach: #fff4e5;
-      --peach-deep: #fde7c2;
-      --brown: #8a5200;
       --green: #15803d;
       --red: #dc2626;
       --ded: #e11d48;
-      --line: #e7d3b0;
+      --line: #d1d5db;
+      --earn: #86efac;
+      --earn-soft: #dcfce7;
+      --gross: #bbf7d0;
+      --gross-soft: #ecfdf5;
+      --ded-bg: #fde68a;
+      --ded-soft: #fef9c3;
+      --net-bg: #fbbf24;
+      --net-soft: #fef3c7;
+      --info: #e5e7eb;
+      --info-soft: #f3f4f6;
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; color: var(--ink); font-size: 10px; background: #f3f4f6; }
@@ -51,15 +58,23 @@ $company = $company ?? 'Ocean Infotech';
     th, td { border: 1px solid var(--line); padding: 5px 6px; vertical-align: middle; }
     thead .g th {
       text-align: center; font-size: 9px; text-transform: uppercase; letter-spacing: .04em;
-      font-weight: 800; background: var(--peach) !important; color: var(--brown) !important;
-      border-color: var(--peach-deep); padding: 7px 6px;
+      font-weight: 800; padding: 7px 6px;
     }
-    thead .c th {
-      background: #fffaf2 !important; color: var(--brown) !important;
-      font-size: 9px; font-weight: 800; white-space: nowrap; border-color: var(--peach-deep);
-    }
+    .g-info { background: var(--info) !important; color: #374151 !important; }
+    .g-earn { background: var(--earn) !important; color: #14532d !important; }
+    .g-gross { background: var(--gross) !important; color: #166534 !important; }
+    .g-ded { background: var(--ded-bg) !important; color: #92400e !important; }
+    .g-net { background: var(--net-bg) !important; color: #78350f !important; }
+    .g-bank { background: var(--info) !important; color: #374151 !important; }
+    thead .c th { font-size: 9px; font-weight: 800; white-space: nowrap; }
+    .c-info { background: var(--info-soft) !important; color: #374151 !important; }
+    .c-earn { background: var(--earn-soft) !important; color: #166534 !important; }
+    .c-gross { background: var(--gross-soft) !important; color: #065f46 !important; }
+    .c-ded { background: var(--ded-soft) !important; color: #854d0e !important; }
+    .c-net { background: var(--net-soft) !important; color: #92400e !important; }
+    .c-bank { background: var(--info-soft) !important; color: #374151 !important; }
     tbody td { font-size: 9.5px; background: #fff; }
-    tbody tr:nth-child(even) td { background: #fffcf7; }
+    tbody tr:nth-child(even) td { background: #fafafa; }
     .r { text-align: right; white-space: nowrap; }
     .c { text-align: center; }
     .name { font-weight: 800; color: var(--ink); }
@@ -70,11 +85,11 @@ $company = $company ?? 'Ocean Infotech';
     .v-ded { color: var(--ded) !important; font-weight: 700; }
     .pt-box {
       display: inline-block; min-width: 42px; padding: 2px 6px; border-radius: 6px;
-      background: #fff7ea; border: 1px solid #fde7c2; color: var(--brown); font-weight: 800; text-align: right;
+      background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-weight: 800; text-align: right;
     }
     tfoot th {
-      background: var(--peach) !important; color: var(--brown) !important; font-weight: 800;
-      border-top: 2px solid var(--brand); border-color: var(--peach-deep);
+      background: #fff7ea !important; color: var(--ink) !important; font-weight: 800;
+      border-top: 2px solid var(--brand);
     }
     .note { margin-top: 10px; color: #6b7280; font-size: 9px; font-weight: 600; }
     @page { size: A4 landscape; margin: 8mm; }
@@ -82,7 +97,9 @@ $company = $company ?? 'Ocean Infotech';
       body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .toolbar { display: none !important; }
       .sheet { margin: 0; box-shadow: none; border-radius: 0; max-width: none; padding: 0; }
-      thead .g th, thead .c th, tfoot th, tbody tr:nth-child(even) td, .pt-box {
+      thead .g th, thead .c th, tfoot th, tbody tr:nth-child(even) td, .pt-box,
+      .g-info, .g-earn, .g-gross, .g-ded, .g-net, .g-bank,
+      .c-info, .c-earn, .c-gross, .c-ded, .c-net, .c-bank {
         -webkit-print-color-adjust: exact; print-color-adjust: exact;
       }
     }
@@ -115,31 +132,31 @@ $company = $company ?? 'Ocean Infotech';
   <table>
     <thead>
       <tr class="g">
-        <th colspan="4">Employee</th>
-        <th colspan="6">Earning</th>
-        <th colspan="2">Gross</th>
-        <th colspan="2">Deduction</th>
-        <th>Net</th>
-        <th colspan="2">Bank</th>
+        <th colspan="4" class="g-info">Employee</th>
+        <th colspan="6" class="g-earn">Earning</th>
+        <th colspan="2" class="g-gross">Gross</th>
+        <th colspan="2" class="g-ded">Deduction</th>
+        <th class="g-net">Net</th>
+        <th colspan="2" class="g-bank">Bank</th>
       </tr>
       <tr class="c">
-        <th>Emp Code</th>
-        <th>Employee Name</th>
-        <th>Desig.</th>
-        <th>D.O.J.</th>
-        <th>Salary</th>
-        <th>P.Days</th>
-        <th>W.Off</th>
-        <th>Holiday</th>
-        <th>Leave</th>
-        <th>Absent</th>
-        <th>Total Days</th>
-        <th>Gross</th>
-        <th>P.T.</th>
-        <th>Tot. Ded.</th>
-        <th>Net</th>
-        <th>A/C No.</th>
-        <th>IFSC</th>
+        <th class="c-info">Emp Code</th>
+        <th class="c-info">Employee Name</th>
+        <th class="c-info">Desig.</th>
+        <th class="c-info">D.O.J.</th>
+        <th class="c-earn">Salary</th>
+        <th class="c-earn">P.Days</th>
+        <th class="c-earn">W.Off</th>
+        <th class="c-earn">Holiday</th>
+        <th class="c-earn">Leave</th>
+        <th class="c-earn">Absent</th>
+        <th class="c-gross">Total Days</th>
+        <th class="c-gross">Gross</th>
+        <th class="c-ded">P.T.</th>
+        <th class="c-ded">Tot. Ded.</th>
+        <th class="c-net">Net</th>
+        <th class="c-bank">A/C No.</th>
+        <th class="c-bank">IFSC</th>
       </tr>
     </thead>
     <tbody>

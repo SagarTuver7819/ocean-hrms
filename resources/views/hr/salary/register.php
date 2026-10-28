@@ -20,33 +20,40 @@ $pdfUrl = $q($month, $includeInterns, true);
   </div>
 </div>
 
-<div class="filter-bar">
-  <form class="row g-2 align-items-end" method="get" action="<?= url('salary/register') ?>">
-    <div class="col-auto">
-      <label class="form-label">Month</label>
-      <div class="d-flex gap-1 align-items-center">
-        <a href="<?= $q($prev, $includeInterns) ?>" class="btn btn-sm btn-outline-ink"><i class="fa-solid fa-chevron-left"></i></a>
-        <input type="month" name="month" class="form-control form-control-sm" value="<?= e($month) ?>" onchange="this.form.submit()">
-        <a href="<?= $q($next, $includeInterns) ?>" class="btn btn-sm btn-outline-ink"><i class="fa-solid fa-chevron-right"></i></a>
+<div class="sal-filter-card">
+  <form method="get" action="<?= url('salary/register') ?>" class="sal-filter-form">
+    <div class="sal-filter-main">
+      <div class="sal-filter-field">
+        <span class="sal-filter-label"><i class="fa-regular fa-calendar me-1"></i>Month</span>
+        <div class="sal-month-nav">
+          <a href="<?= $q($prev, $includeInterns) ?>" class="sal-month-btn" title="Previous month"><i class="fa-solid fa-chevron-left"></i></a>
+          <input type="month" name="month" class="sal-month-input" value="<?= e($month) ?>" onchange="this.form.submit()">
+          <a href="<?= $q($next, $includeInterns) ?>" class="sal-month-btn" title="Next month"><i class="fa-solid fa-chevron-right"></i></a>
+        </div>
       </div>
-    </div>
-    <div class="col-auto">
-      <label class="form-label d-block">&nbsp;</label>
-      <div class="form-check form-switch mt-1">
+
+      <div class="sal-filter-divider"></div>
+
+      <label class="sal-intern-switch" for="incIntern">
         <input class="form-check-input" type="checkbox" role="switch" name="include_interns" value="1" id="incIntern"
           <?= $includeInterns ? 'checked' : '' ?> onchange="this.form.submit()">
-        <label class="form-check-label fw-semibold" for="incIntern">Include Intern employees</label>
-      </div>
+        <span>
+          <b>Include Interns</b>
+          <small>Optional · salary register</small>
+        </span>
+      </label>
+
+      <div class="sal-filter-divider"></div>
+
+      <a href="<?= e($pdfUrl) ?>" target="_blank" class="sal-print-btn">
+        <i class="fa-solid fa-print"></i>
+        <span>Print / PDF</span>
+      </a>
     </div>
-    <div class="col-auto">
-      <label class="form-label d-block">&nbsp;</label>
-      <a href="<?= e($pdfUrl) ?>" target="_blank" class="btn btn-sm btn-outline-ink"><i class="fa-solid fa-print me-1"></i>Print / PDF</a>
-    </div>
-    <div class="col-12">
-      <small class="text-muted fw-semibold">
-        As of <?= format_date($register['as_of']) ?> · Month days <?= (int) $register['days_in_month'] ?> ·
-        Leave = Paid Leave only · Sick Leave unpaid (not in Gross) · Deduction = PT only · No UAN
-      </small>
+    <div class="sal-filter-note">
+      <i class="fa-solid fa-circle-info"></i>
+      As of <?= format_date($register['as_of']) ?> · Month days <?= (int) $register['days_in_month'] ?> ·
+      Leave = Paid Leave only · Sick Leave unpaid (not in Gross) · Deduction = PT only · No UAN
     </div>
   </form>
 </div>
@@ -61,9 +68,9 @@ $pdfUrl = $q($month, $includeInterns, true);
 </div>
 
 <div class="panel table-card sal-reg-panel">
-  <div class="panel-header">
+  <div class="panel-header sal-reg-titlebar">
     <h3>Salaried Persons (Fixed) · <?= e($register['label']) ?></h3>
-    <small class="text-muted"><?= (int) $t['employees'] ?> employees</small>
+    <small>Attendance-wise fixed salary · <?= (int) $t['employees'] ?> employees</small>
   </div>
   <div class="panel-body p-0">
     <div class="table-responsive">
@@ -79,24 +86,24 @@ $pdfUrl = $q($month, $includeInterns, true);
             <th class="sal-g-info"></th>
           </tr>
           <tr class="sal-h-cols">
-            <th>Emp Code</th>
-            <th>Employee Name</th>
-            <th>Desig.</th>
-            <th>D.O.J.</th>
-            <th>Salary</th>
-            <th>P.Days</th>
-            <th>W.Off</th>
-            <th>Holiday</th>
-            <th>Leave</th>
-            <th>Absent</th>
-            <th>Total Days</th>
-            <th>Gross</th>
-            <th>P.T.</th>
-            <th>Tot. Ded.</th>
-            <th>Net</th>
-            <th>A/C No.</th>
-            <th>IFSC</th>
-            <th></th>
+            <th class="sal-c-info">Emp Code</th>
+            <th class="sal-c-info">Employee Name</th>
+            <th class="sal-c-info">Desig.</th>
+            <th class="sal-c-info">D.O.J.</th>
+            <th class="sal-c-earn">Salary</th>
+            <th class="sal-c-earn">P.Days</th>
+            <th class="sal-c-earn">W.Off</th>
+            <th class="sal-c-earn">Holiday</th>
+            <th class="sal-c-earn">Leave</th>
+            <th class="sal-c-earn">Absent</th>
+            <th class="sal-c-gross">Total Days</th>
+            <th class="sal-c-gross">Gross</th>
+            <th class="sal-c-ded">P.T.</th>
+            <th class="sal-c-ded">Tot. Ded.</th>
+            <th class="sal-c-net">Net</th>
+            <th class="sal-c-bank">A/C No.</th>
+            <th class="sal-c-bank">IFSC</th>
+            <th class="sal-c-info"></th>
           </tr>
         </thead>
         <tbody>
@@ -162,30 +169,109 @@ $pdfUrl = $q($month, $includeInterns, true);
 </div>
 
 <style>
+/* —— Filter bar —— */
+.sal-filter-card {
+  background: #fff; border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: var(--shadow-sm); padding: 14px 16px; margin-bottom: 16px;
+}
+.sal-filter-main {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px;
+}
+.sal-filter-field { display: flex; flex-direction: column; gap: 6px; }
+.sal-filter-label {
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+}
+.sal-month-nav {
+  display: inline-flex; align-items: center; gap: 0;
+  border: 1.5px solid #f5c56a; border-radius: 12px; overflow: hidden; background: #fffaf2;
+  box-shadow: 0 2px 8px rgba(245,160,27,.08);
+}
+.sal-month-btn {
+  width: 38px; height: 40px; display: grid; place-items: center;
+  color: #8a5200; text-decoration: none; background: #fff7ea; border: 0;
+  transition: background .15s;
+}
+.sal-month-btn:hover { background: #fde7c2; color: #8a5200; }
+.sal-month-input {
+  border: 0; background: transparent; height: 40px; min-width: 160px;
+  padding: 0 12px; font-weight: 800; color: var(--ink); outline: none;
+}
+.sal-filter-divider { width: 1px; height: 36px; background: #e5e7eb; }
+.sal-intern-switch {
+  display: inline-flex; align-items: center; gap: 10px; margin: 0; cursor: pointer;
+  padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line); background: #fafafa;
+}
+.sal-intern-switch:hover { border-color: #f5c56a; background: #fffaf2; }
+.sal-intern-switch .form-check-input {
+  width: 2.4em; height: 1.3em; margin: 0; cursor: pointer;
+  background-color: #cbd5e1; border-color: #94a3b8;
+}
+.sal-intern-switch .form-check-input:checked {
+  background-color: var(--brand); border-color: var(--brand);
+}
+.sal-intern-switch b { display: block; font-size: 13px; color: var(--ink); line-height: 1.2; }
+.sal-intern-switch small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
+.sal-print-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 16px; border-radius: 12px;
+  border: 1.5px solid var(--line); background: #fff; color: var(--ink);
+  font-weight: 800; font-size: 13px; text-decoration: none;
+  transition: .15s;
+}
+.sal-print-btn:hover { border-color: var(--brand); color: var(--brand-dark); background: #fff7ea; }
+.sal-print-btn i { color: var(--brand); }
+.sal-filter-note {
+  margin-top: 12px; padding-top: 10px; border-top: 1px dashed #e5e7eb;
+  font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1.45;
+}
+.sal-filter-note i { color: var(--brand); margin-right: 4px; }
+@media (max-width: 768px) {
+  .sal-filter-divider { display: none; }
+  .sal-month-input { min-width: 130px; }
+}
+
+.sal-reg-titlebar {
+  background: #4b5563 !important; color: #fff !important;
+  border-bottom: 0 !important; padding: 12px 16px !important;
+}
+.sal-reg-titlebar h3 { color: #fff !important; margin: 0; font-size: 14px; }
+.sal-reg-titlebar small { color: #e5e7eb !important; font-weight: 600; }
+
+/* —— Table color code (accounts-style) —— */
 .sal-reg-table { font-size: 12.5px; }
-.sal-reg-table th, .sal-reg-table td { white-space: nowrap; vertical-align: middle; border-color: #e7d3b0 !important; }
+.sal-reg-table th, .sal-reg-table td { white-space: nowrap; vertical-align: middle; border-color: #d1d5db !important; }
 .sal-h-group th {
-  text-align: center; font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
-  border-bottom: 0 !important; padding: 8px 10px !important;
-  background: #fff4e5 !important; color: #8a5200 !important; font-weight: 800;
+  text-align: center; font-size: 11px; letter-spacing: .05em; text-transform: uppercase;
+  border-bottom: 0 !important; padding: 8px 10px !important; font-weight: 800;
 }
-.sal-g-info, .sal-g-earn, .sal-g-gross, .sal-g-ded, .sal-g-net, .sal-g-bank {
-  background: #fff4e5 !important; color: #8a5200 !important;
-}
-.sal-h-cols th { background: #fffaf2 !important; color: #8a5200 !important; font-size: 11px; font-weight: 800; }
-.sal-reg-table tbody tr:nth-child(even) td { background: #fffcf7; }
-.sal-row-nosalary td { background: #fafafa !important; }
+.sal-g-info { background: #e5e7eb !important; color: #374151 !important; }
+.sal-g-earn { background: #86efac !important; color: #14532d !important; }
+.sal-g-gross { background: #bbf7d0 !important; color: #166534 !important; }
+.sal-g-ded { background: #fde68a !important; color: #92400e !important; }
+.sal-g-net { background: #fbbf24 !important; color: #78350f !important; }
+.sal-g-bank { background: #e5e7eb !important; color: #374151 !important; }
+
+.sal-h-cols th { font-size: 11px; font-weight: 800; }
+.sal-c-info { background: #f3f4f6 !important; color: #374151 !important; }
+.sal-c-earn { background: #dcfce7 !important; color: #166534 !important; }
+.sal-c-gross { background: #ecfdf5 !important; color: #065f46 !important; }
+.sal-c-ded { background: #fef9c3 !important; color: #854d0e !important; }
+.sal-c-net { background: #fef3c7 !important; color: #92400e !important; }
+.sal-c-bank { background: #f3f4f6 !important; color: #374151 !important; }
+
+.sal-reg-table tbody tr:nth-child(even) td { background: #fafafa; }
+.sal-row-nosalary td { background: #f8fafc !important; }
 .sal-v-salary, .sal-v-net { color: #15803d !important; font-weight: 800; }
 .sal-v-gross { color: #211F23 !important; font-weight: 800; }
 .sal-v-absent { color: #dc2626 !important; font-weight: 700; }
 .sal-v-ded { color: #e11d48 !important; font-weight: 700; }
 .sal-reg-foot th {
-  background: #fff4e5 !important; border-top: 2px solid #F5A01B !important;
-  font-weight: 800; color: #8a5200;
+  background: #fff7ea !important; border-top: 2px solid #F5A01B !important;
+  font-weight: 800; color: #211F23;
 }
 .sal-pt-edit { margin: 0; min-width: 72px; }
 .sal-pt-edit .form-control {
-  font-weight: 800; text-align: right; border-color: #fde7c2; background: #fffaf2; color: #8a5200;
+  font-weight: 800; text-align: right; border-color: #fde68a; background: #fffbeb; color: #92400e;
   padding: 2px 6px; height: 28px; font-size: 12px;
 }
 </style>
