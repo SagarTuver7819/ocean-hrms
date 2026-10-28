@@ -25,8 +25,10 @@ class ShiftController extends Controller
                 'SELECT s.*, (SELECT COUNT(*) FROM employees e WHERE e.shift_id = s.id) AS employees FROM shifts s ORDER BY s.start_time, s.name'
             ),
             'employees' => Database::all(
-                "SELECT e.id, e.employee_code, e.first_name, e.last_name, e.shift_id, d.name AS department_name
-                 FROM employees e LEFT JOIN departments d ON d.id = e.department_id
+                "SELECT e.id, e.employee_code, e.first_name, e.last_name, e.shift_id, e.employment_type, d.name AS department_name, g.name AS designation_name
+                 FROM employees e
+                 LEFT JOIN departments d ON d.id = e.department_id
+                 LEFT JOIN designations g ON g.id = e.designation_id
                  WHERE e.status NOT IN ('inactive','resigned') ORDER BY e.employee_code"
             ),
         ]);
@@ -38,8 +40,8 @@ class ShiftController extends Controller
         $this->requireCsrf('shifts');
         $data = $this->collect();
         Database::run(
-            'INSERT INTO shifts (name, code, start_time, end_time, late_after_minutes, break_minutes, half_day_minutes, full_day_minutes, week_offs, status, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+            'INSERT INTO shifts (name, code, start_time, end_time, flexible_minutes, late_after_minutes, skip_late, break_minutes, half_day_minutes, full_day_minutes, week_offs, half_week_offs, status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
             array_values($data)
         );
         activity_log('shift', 'created', (int) $this->db()->lastInsertId(), null, $data);
@@ -53,7 +55,7 @@ class ShiftController extends Controller
         $this->requireCsrf('shifts');
         $data = $this->collect();
         Database::run(
-            'UPDATE shifts SET name = ?, code = ?, start_time = ?, end_time = ?, late_after_minutes = ?, break_minutes = ?, half_day_minutes = ?, full_day_minutes = ?, week_offs = ?, status = ?, updated_at = NOW() WHERE id = ?',
+            'UPDATE shifts SET name = ?, code = ?, start_time = ?, end_time = ?, flexible_minutes = ?, late_after_minutes = ?, skip_late = ?, break_minutes = ?, half_day_minutes = ?, full_day_minutes = ?, week_offs = ?, half_week_offs = ?, status = ?, updated_at = NOW() WHERE id = ?',
             [...array_values($data), (int) $id]
         );
         activity_log('shift', 'updated', (int) $id, null, $data);
@@ -96,16 +98,20 @@ class ShiftController extends Controller
     {
         $hours = fn(string $key, float $default) => (int) round(max(0, (float) $this->input($key, $default)) * 60);
         $offs = array_map('intval', (array) $this->input('week_offs', []));
+        $halfOffs = array_map('intval', (array) $this->input('half_week_offs', []));
         return [
             'name' => trim((string) $this->input('name')) ?: 'Shift',
             'code' => strtoupper(trim((string) $this->input('code'))) ?: null,
-            'start_time' => substr((string) $this->input('start_time', '09:30'), 0, 5) . ':00',
-            'end_time' => substr((string) $this->input('end_time', '18:30'), 0, 5) . ':00',
+            'start_time' => substr((string) $this->input('start_time', '09:00'), 0, 5) . ':00',
+            'end_time' => substr((string) $this->input('end_time', '18:20'), 0, 5) . ':00',
+            'flexible_minutes' => max(0, (int) $this->input('flexible_minutes', 0)),
             'late_after_minutes' => max(0, (int) $this->input('late_after_minutes', 15)),
+            'skip_late' => (int) $this->input('skip_late', 0) ? 1 : 0,
             'break_minutes' => max(0, (int) $this->input('break_minutes', 60)),
-            'half_day_minutes' => $hours('half_day_hours', 4),
-            'full_day_minutes' => $hours('full_day_hours', 8),
+            'half_day_minutes' => $hours('half_day_hours', 4.17),
+            'full_day_minutes' => $hours('full_day_hours', 8.33),
             'week_offs' => implode(',', array_unique(array_filter($offs, fn($d) => $d >= 0 && $d <= 6))),
+            'half_week_offs' => implode(',', array_unique(array_filter($halfOffs, fn($d) => $d >= 0 && $d <= 6))),
             'status' => (int) $this->input('status', 1) ? 1 : 0,
         ];
     }

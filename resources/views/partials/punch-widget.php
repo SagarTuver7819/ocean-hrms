@@ -7,6 +7,9 @@ $breaks = $snap['breaks'];
 $lastBreak = $breaks ? end($breaks) : null;
 $late = (int) ($row['late_minutes'] ?? 0);
 $targetMin = (int) $shift['full_day_minutes'];
+$maxBreak = (int) ($shift['break_minutes'] ?? 60);
+$skipLate = !empty($snap['skipLate']);
+$flex = (int) ($snap['flexibleMinutes'] ?? 0);
 $labels = [
     'not_started' => ['Not Punched In', 'fa-fingerprint'],
     'working'     => ['Working', 'fa-laptop-code'],
@@ -20,7 +23,24 @@ $steps = [
     ['Break In', 'fa-rotate-left', $lastBreak['break_in'] ?? null],
     ['Punch Out', 'fa-right-from-bracket', $row['punch_out'] ?? null],
 ];
-$notice = $snap['holiday'] ? 'Today is a holiday: ' . $snap['holiday'] : ($snap['onLeave'] ? 'You are on approved leave today.' : ($snap['weekOff'] ? 'Today is your weekly off.' : null));
+$flexLabel = '';
+if ($flex > 0 && !$skipLate) {
+    $flexEnd = date('h:i A', strtotime($shift['start_time']) + $flex * 60);
+    $lateAt = date('h:i A', $snap['lateDeadline'] ?? (strtotime($shift['start_time']) + ($flex + (int) $shift['late_after_minutes']) * 60));
+    $flexLabel = 'Flexible till ' . $flexEnd . ' · Late after ' . $lateAt;
+} elseif ($skipLate) {
+    $flexLabel = 'Flexible · Late not counted';
+}
+$notice = null;
+if ($snap['holiday']) {
+    $notice = 'Today is a holiday: ' . $snap['holiday'];
+} elseif ($snap['onLeave']) {
+    $notice = 'You are on approved leave today.';
+} elseif ($snap['weekOff']) {
+    $notice = 'Today is your weekly off.';
+} elseif (!empty($snap['halfWeekOff'])) {
+    $notice = 'Today afternoon is your weekly half-off (2nd half).';
+}
 ?>
 <div class="punch-widget state-<?= $state ?>" id="punchWidget"
      data-state="<?= $state ?>" data-work="<?= (int) $snap['workSecs'] ?>" data-break="<?= (int) $snap['breakSecs'] ?>"
@@ -46,6 +66,7 @@ $notice = $snap['holiday'] ? 'Today is a holiday: ' . $snap['holiday'] : ($snap[
       <span class="pw-state"><i class="pw-dot"></i><?= $stateLabel ?></span>
       <span class="pw-shift"><i class="fa-solid fa-business-time me-1"></i><?= e($shift['name']) ?> · <?= date('h:i A', strtotime($shift['start_time'])) ?> – <?= date('h:i A', strtotime($shift['end_time'])) ?></span>
     </div>
+    <?php if ($flexLabel): ?><div class="pw-flex-note"><i class="fa-solid fa-clock me-1"></i><?= e($flexLabel) ?></div><?php endif; ?>
     <?php if ($notice): ?><div class="pw-notice"><i class="fa-solid fa-circle-info me-1"></i><?= e($notice) ?></div><?php endif; ?>
 
     <ol class="pw-steps">
@@ -73,9 +94,24 @@ $notice = $snap['holiday'] ? 'Today is a holiday: ' . $snap['holiday'] : ($snap[
     </div>
 
     <div class="pw-stats">
-      <div><small>Late</small><b class="<?= $late ? 'text-danger' : '' ?>"><?= $row && $row['punch_in'] ? hm($late, 'On time') : '—' ?></b></div>
-      <div><small>Break<?= count($breaks) > 1 ? 's (' . count($breaks) . ')' : '' ?></small><b class="js-pw-breaktotal"><?= hm($snap['breakSecs'] / 60, '0m') ?></b></div>
+      <div>
+        <small>Late</small>
+        <b class="<?= (!$skipLate && $late) ? 'text-danger' : '' ?>">
+          <?php if ($skipLate): ?>
+            N/A
+          <?php else: ?>
+            <?= $row && $row['punch_in'] ? hm($late, 'On time') : '—' ?>
+          <?php endif; ?>
+        </b>
+      </div>
+      <div><small>Break<?= count($breaks) > 1 ? 's (' . count($breaks) . ')' : '' ?> · max <?= hm($maxBreak) ?></small><b class="js-pw-breaktotal"><?= hm($snap['breakSecs'] / 60, '0m') ?></b></div>
       <div><small><?= $state === 'done' ? 'Overtime' : 'Shift Ends' ?></small><b><?= $state === 'done' ? hm($row['overtime_minutes'] ?? 0, '0m') : date('h:i A', strtotime($shift['end_time'])) ?></b></div>
     </div>
   </div>
 </div>
+<style>
+.pw-flex-note {
+  margin: 0 0 10px; padding: 8px 12px; border-radius: 10px;
+  background: #fff8ec; color: #9a5b00; font-size: 12px; font-weight: 700;
+}
+</style>

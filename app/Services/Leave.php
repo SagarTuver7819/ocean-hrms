@@ -5,9 +5,9 @@ namespace App\Services;
 use App\Core\Database;
 
 /**
- * Leave balances. Types with a monthly credit (company policy: 1 paid leave per month)
- * earn that credit for every month from January — or the joining month — up to the current month.
- * Balances reset each calendar year.
+ * Leave balances. Company policy: 1 paid leave credited every month from the joining month
+ * through the current month. Unused balance does not carry forward into the next calendar year
+ * (allocation is recalculated per year).
  */
 class Leave
 {
@@ -62,15 +62,33 @@ class Leave
         return $rows;
     }
 
-    /** Dates in the range the employee would actually be absent: skips weekly offs and company holidays. */
+    /**
+     * Leave-day weight for a calendar date: 0 = full off/holiday, 0.5 = half week-off (e.g. BDM Sat afternoon), 1 = full working day.
+     * Balances use joining-month → current month credits; unused days do not carry to the next calendar year.
+     */
+    public static function dayWeight(int $employeeId, string $date): float
+    {
+        $shift = Attendance::shiftFor($employeeId);
+        $w = (int) date('w', strtotime($date));
+        if (in_array($w, Attendance::weekOffs($shift), true)) {
+            return 0.0;
+        }
+        if (in_array($date, self::holidayDatesBetween($date, $date), true)) {
+            return 0.0;
+        }
+        if (in_array($w, Attendance::halfWeekOffs($shift), true)) {
+            return 0.5;
+        }
+        return 1.0;
+    }
+
+    /** Dates in the range the employee would actually be absent: skips full weekly offs and company holidays. */
     public static function workingDates(int $employeeId, string $from, string $to): array
     {
-        $offs = Attendance::weekOffs(Attendance::shiftFor($employeeId));
-        $holidays = self::holidayDatesBetween($from, $to);
         $dates = [];
         for ($t = strtotime($from); $t <= strtotime($to); $t += 86400) {
             $d = date('Y-m-d', $t);
-            if (!in_array((int) date('w', $t), $offs, true) && !in_array($d, $holidays, true)) {
+            if (self::dayWeight($employeeId, $d) > 0) {
                 $dates[] = $d;
             }
         }
@@ -105,7 +123,13 @@ class Leave
 
     public static function countDays(int $employeeId, string $from, string $to, bool $halfDay = false): float
     {
-        $days = count(self::workingDates($employeeId, $from, $to));
-        return $halfDay && $from === $to ? min(0.5, $days) : (float) $days;
+        $total = 0.0;
+        foreach (self::workingDates($employeeId, $from, $to) as $d) {
+            $total += self::dayWeight($employeeId, $d);
+        }
+        if ($halfDay && $from === $to) {
+            return min(0.5, $total);
+        }
+        return round($total, 1);
     }
 }

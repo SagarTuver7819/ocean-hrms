@@ -104,6 +104,9 @@ class DbSync
                 'half_day_minutes' => 'INT NOT NULL DEFAULT 240 AFTER break_minutes',
                 'full_day_minutes' => 'INT NOT NULL DEFAULT 480 AFTER half_day_minutes',
                 'week_offs' => "VARCHAR(20) NOT NULL DEFAULT '0' AFTER full_day_minutes",
+                'flexible_minutes' => 'INT NOT NULL DEFAULT 0 AFTER late_after_minutes',
+                'skip_late' => 'TINYINT(1) NOT NULL DEFAULT 0 AFTER flexible_minutes',
+                'half_week_offs' => "VARCHAR(20) NOT NULL DEFAULT '' AFTER week_offs",
             ],
             'attendance' => [
                 'shift_id' => 'INT UNSIGNED NULL AFTER attendance_date',
@@ -217,7 +220,92 @@ class DbSync
             $log[] = 'ok · holidays.to_date backfilled';
         }
 
-        $syncVersion = '2026-10-17-holiday-range-v1';
+        // Leave policy: 1 paid leave / month from joining, no year carry-forward
+        $db->exec(
+            "INSERT INTO leave_types (name, code, days_per_year, monthly_accrual, is_paid, status, created_at)
+             SELECT 'Paid Leave', 'PL', 12, 1, 1, 1, NOW() FROM DUAL
+             WHERE NOT EXISTS (SELECT 1 FROM leave_types WHERE code = 'PL')"
+        );
+        $db->exec("UPDATE leave_types SET name = 'Paid Leave', monthly_accrual = 1, days_per_year = 12, is_paid = 1, status = 1 WHERE code = 'PL'");
+        $db->exec(
+            "INSERT INTO leave_types (name, code, days_per_year, monthly_accrual, is_paid, status, created_at)
+             SELECT 'Unpaid Leave', 'UL', 0, 0, 0, 1, NOW() FROM DUAL
+             WHERE NOT EXISTS (SELECT 1 FROM leave_types WHERE code = 'UL')"
+        );
+        $db->exec("UPDATE leave_types SET monthly_accrual = 0, days_per_year = 0, is_paid = 0, status = 1 WHERE code = 'UL'");
+        $db->exec("UPDATE leave_types SET status = 0 WHERE code NOT IN ('PL','UL') AND status = 1");
+        $log[] = 'ok · leave policy · PL 1/month · no carry-forward (yearly reset)';
+
+        // Ocean shift policies
+        $upsertShift = static function (
+            string $code,
+            string $name,
+            string $start,
+            string $end,
+            int $flex,
+            int $grace,
+            int $breakMin,
+            int $fullMin,
+            int $halfMin,
+            string $weekOffs,
+            string $halfWeekOffs,
+            int $skipLate
+        ) use ($db, &$log): int {
+            $id = (int) $db->query('SELECT id FROM shifts WHERE code = ' . $db->quote($code) . ' LIMIT 1')->fetchColumn();
+            if ($id > 0) {
+                $db->prepare(
+                    'UPDATE shifts SET name=?, start_time=?, end_time=?, flexible_minutes=?, late_after_minutes=?,
+                     skip_late=?, break_minutes=?, full_day_minutes=?, half_day_minutes=?, week_offs=?, half_week_offs=?, status=1
+                     WHERE id=?'
+                )->execute([$name, $start, $end, $flex, $grace, $skipLate, $breakMin, $fullMin, $halfMin, $weekOffs, $halfWeekOffs, $id]);
+                $log[] = "ok · shift {$code} updated";
+                return $id;
+            }
+            $db->prepare(
+                'INSERT INTO shifts (name, code, start_time, end_time, flexible_minutes, late_after_minutes, skip_late,
+                 break_minutes, half_day_minutes, full_day_minutes, week_offs, half_week_offs, status, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())'
+            )->execute([$name, $code, $start, $end, $flex, $grace, $skipLate, $breakMin, $halfMin, $fullMin, $weekOffs, $halfWeekOffs]);
+            $log[] = "ok · shift {$code} created";
+            return (int) $db->lastInsertId();
+        };
+
+        // General: flex 9–10, grace to 10:15, work 8h20, max break 1h, total span 9h20 → 18:20
+        $genId = $upsertShift('GEN', 'General Shift', '09:00:00', '18:20:00', 60, 15, 60, 500, 250, '0', '', 0);
+        // Internship: flexible, no late
+        $intId = $upsertShift('INT', 'Internship Shift', '09:00:00', '18:20:00', 0, 0, 60, 500, 250, '0', '', 1);
+        // BDM: Sunday off + Saturday 2nd half off
+        $bdmId = $upsertShift('BDM', 'BDM Shift', '09:00:00', '18:20:00', 60, 15, 60, 500, 250, '0', '6', 0);
+
+        // Assign shifts by role / employment type
+        $st = $db->prepare(
+            "UPDATE employees e
+             INNER JOIN designations d ON d.id = e.designation_id
+             SET e.shift_id = ?
+             WHERE d.name = 'BDM' AND e.status NOT IN ('inactive','resigned')"
+        );
+        $st->execute([$bdmId]);
+        $log[] = 'ok · assigned BDM shift to BDM designation (' . $st->rowCount() . ')';
+
+        $st = $db->prepare(
+            "UPDATE employees SET shift_id = ?
+             WHERE employment_type = 'intern' AND status NOT IN ('inactive','resigned')"
+        );
+        $st->execute([$intId]);
+        $log[] = 'ok · assigned Internship shift to interns (' . $st->rowCount() . ')';
+
+        $st = $db->prepare(
+            "UPDATE employees e
+             LEFT JOIN designations d ON d.id = e.designation_id
+             SET e.shift_id = ?
+             WHERE e.employment_type <> 'intern'
+               AND COALESCE(d.name, '') <> 'BDM'
+               AND e.status NOT IN ('inactive','resigned')"
+        );
+        $st->execute([$genId]);
+        $log[] = 'ok · assigned General shift to other employees (' . $st->rowCount() . ')';
+
+        $syncVersion = '2026-10-28-shift-leave-policy-v1';
         $db->prepare(
             "INSERT INTO settings (setting_key, setting_value, updated_at) VALUES ('db_sync_version', ?, NOW())
              ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()"
