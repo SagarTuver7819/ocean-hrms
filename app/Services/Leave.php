@@ -5,24 +5,71 @@ namespace App\Services;
 use App\Core\Database;
 
 /**
- * Leave balances. Company policy: 1 paid leave credited every month from the joining month
- * through the current month. Unused balance does not carry forward into the next calendar year
- * (allocation is recalculated per year).
+ * Leave policy:
+ * - Paid Leave (PL): 1 day credited every month from joining (or policy start), no year carry-forward.
+ * - Sick Leave (SL): unpaid, unlimited (not tracked against a balance).
+ * Accrual for a year stops at Dec; unused PL does not roll into the next year.
  */
 class Leave
 {
+    /** Company leave accrual begins this month (Oct 2026 → months 10,11,12 = up to 3 for year 2026). */
+    public const POLICY_START = '2026-10-01';
+
     public static function creditedMonths(?string $joiningDate, int $year): int
     {
         $currentYear = (int) date('Y');
-        if ($year > $currentYear) return 0;
+        if ($year > $currentYear) {
+            return 0;
+        }
+
+        $policyTs = strtotime(self::POLICY_START);
+        $policyYear = (int) date('Y', $policyTs);
+        $policyMonth = (int) date('n', $policyTs);
+
+        if ($year < $policyYear) {
+            return 0;
+        }
+
         $first = 1;
+        if ($year === $policyYear) {
+            $first = $policyMonth;
+        }
         if ($joiningDate) {
             $joinYear = (int) date('Y', strtotime($joiningDate));
-            if ($joinYear > $year) return 0;
-            if ($joinYear === $year) $first = (int) date('n', strtotime($joiningDate));
+            $joinMonth = (int) date('n', strtotime($joiningDate));
+            if ($joinYear > $year) {
+                return 0;
+            }
+            if ($joinYear === $year) {
+                $first = max($first, $joinMonth);
+            }
         }
+
         $last = $year < $currentYear ? 12 : (int) date('n');
         return max(0, $last - $first + 1);
+    }
+
+    /** Month numbers already credited this year (for UI timeline). */
+    public static function creditedMonthList(?string $joiningDate, int $year): array
+    {
+        $count = self::creditedMonths($joiningDate, $year);
+        if ($count <= 0) {
+            return [];
+        }
+        $policyTs = strtotime(self::POLICY_START);
+        $policyYear = (int) date('Y', $policyTs);
+        $first = $year === $policyYear ? (int) date('n', $policyTs) : 1;
+        if ($joiningDate) {
+            $joinYear = (int) date('Y', strtotime($joiningDate));
+            if ($joinYear === $year) {
+                $first = max($first, (int) date('n', strtotime($joiningDate)));
+            }
+        }
+        $months = [];
+        for ($i = 0; $i < $count; $i++) {
+            $months[] = $first + $i;
+        }
+        return $months;
     }
 
     public static function syncBalances(int $employeeId, ?int $year = null): void
@@ -31,7 +78,9 @@ class Leave
         $months = self::creditedMonths(Database::value('SELECT joining_date FROM employees WHERE id = ?', [$employeeId]), $year);
         $types = Database::all('SELECT * FROM leave_types WHERE status = 1 AND (monthly_accrual > 0 OR days_per_year > 0)');
         foreach ($types as $t) {
-            $allocated = (float) $t['monthly_accrual'] > 0 ? $months * (float) $t['monthly_accrual'] : (float) $t['days_per_year'];
+            $allocated = (float) $t['monthly_accrual'] > 0
+                ? $months * (float) $t['monthly_accrual']
+                : (float) $t['days_per_year'];
             Database::run(
                 'INSERT INTO leave_balances (employee_id, leave_type_id, year, allocated, used, pending) VALUES (?, ?, ?, ?, 0, 0)
                  ON DUPLICATE KEY UPDATE allocated = VALUES(allocated)',
@@ -40,7 +89,18 @@ class Leave
         }
     }
 
-    /** Active leave types with this year's balance; types without a balance (e.g. unpaid) have available = null. */
+    /** Sync PL balances for every active employee for the given year. */
+    public static function syncAllBalances(?int $year = null): int
+    {
+        $year ??= (int) date('Y');
+        $ids = Database::all("SELECT id FROM employees WHERE status = 'active'");
+        foreach ($ids as $row) {
+            self::syncBalances((int) $row['id'], $year);
+        }
+        return count($ids);
+    }
+
+    /** Active leave types with this year's balance; Sick Leave has available = null (unlimited unpaid). */
     public static function balances(int $employeeId, ?int $year = null): array
     {
         $year ??= (int) date('Y');
@@ -51,7 +111,7 @@ class Leave
              FROM leave_types lt
              LEFT JOIN leave_balances lb ON lb.leave_type_id = lt.id AND lb.employee_id = ? AND lb.year = ?
              WHERE lt.status = 1
-             ORDER BY lt.monthly_accrual DESC, lt.is_paid DESC, lt.name',
+             ORDER BY lt.is_paid DESC, lt.monthly_accrual DESC, lt.name',
             [$employeeId, $year]
         );
         foreach ($rows as &$r) {
@@ -64,7 +124,6 @@ class Leave
 
     /**
      * Leave-day weight for a calendar date: 0 = full off/holiday, 0.5 = half week-off (e.g. BDM Sat afternoon), 1 = full working day.
-     * Balances use joining-month → current month credits; unused days do not carry to the next calendar year.
      */
     public static function dayWeight(int $employeeId, string $date): float
     {

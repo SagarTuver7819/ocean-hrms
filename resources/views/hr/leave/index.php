@@ -5,7 +5,7 @@ $tabs = ['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Reject
 <div class="page-head">
   <div>
     <h1>Leave Desk</h1>
-    <p>Employee leave requests · Policy: 1 paid leave credited per month</p>
+    <p>Paid Leave (1 / month · no carry-forward) · Sick Leave (unpaid)</p>
   </div>
   <a href="<?= url('leave/types') ?>" class="btn btn-sm btn-outline-ink"><i class="fa-solid fa-layer-group me-1"></i>Leave Types</a>
 </div>
@@ -35,7 +35,7 @@ $tabs = ['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Reject
             <td>
               <?php if ($r['allocated'] !== null): ?>
                 <b><?= $num($r['allocated'] - $r['used'] - $r['pending_days']) ?></b> <small class="text-muted">free of <?= $num($r['allocated']) ?></small>
-              <?php else: ?><small class="text-muted"><?= $r['is_paid'] ? 'Not tracked' : 'Unpaid' ?></small><?php endif; ?>
+              <?php else: ?><small class="text-muted"><?= $r['is_paid'] ? 'Not tracked' : 'Sick · unpaid' ?></small><?php endif; ?>
             </td>
             <td class="att-breaks"><?= e(mb_strimwidth($r['reason'] ?? '', 0, 60, '…')) ?></td>
             <td data-order="<?= e($r['created_at']) ?>"><small><?= format_date($r['created_at']) ?></small></td>

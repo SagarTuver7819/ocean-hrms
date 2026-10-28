@@ -29,7 +29,7 @@ if ($flex > 0 && !$skipLate) {
     $lateAt = date('h:i A', $snap['lateDeadline'] ?? (strtotime($shift['start_time']) + ($flex + (int) $shift['late_after_minutes']) * 60));
     $flexLabel = 'Flexible till ' . $flexEnd . ' · Late after ' . $lateAt;
 } elseif ($skipLate) {
-    $flexLabel = 'Flexible · Late not counted';
+    $flexLabel = 'Flexible · ' . hm($targetMin) . ' required · Late not counted · Morning or evening OK';
 }
 $notice = null;
 if ($snap['holiday']) {

@@ -40,9 +40,9 @@ $lateLabel = static function (array $s): string {
 <div class="alert alert-light border mb-3" style="border-radius:14px">
   <b>Ocean policy</b> —
   General: flexible <b>09:00–10:00</b>, late after <b>10:15</b>, work <b>8h 20m</b>, max break <b>1h</b> (day span 9h 20m).
-  Internship: flexible punch, <b>no late</b>.
+  Internship: flexible (morning / evening OK), <b>4 hours</b> full day, <b>no late</b>, punch-out never Absent if worked.
   BDM: Sunday off + Saturday <b>2nd half</b> off.
-  Leave: <b>1 paid / month</b> from joining · no year carry-forward.
+  Leave: <b>Paid Leave 1 / month</b> (from Oct 2026 · no carry-forward) · <b>Sick Leave</b> unpaid.
 </div>
 
 <div class="shift-grid">

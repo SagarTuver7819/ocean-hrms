@@ -2,7 +2,7 @@
 <div class="page-head">
   <div>
     <h1>Leave Type Master</h1>
-    <p>Company policy: 1 paid leave credited every month · Set a monthly credit to auto-build balances</p>
+    <p>Active types: Paid Leave (1 / month, no carry-forward) · Sick Leave (unpaid, unlimited)</p>
   </div>
   <button type="button" class="btn btn-sm btn-brand" data-bs-toggle="modal" data-bs-target="#leaveTypeModal"
     data-add-modal="#leaveTypeModal" data-action="<?= url('leave/types') ?>" data-title="Add Leave Type">

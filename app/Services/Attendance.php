@@ -10,7 +10,8 @@ use App\Core\Database;
  *
  * General policy: flexible punch 09:00–10:00, grace to 10:15, then late.
  * Required work 8h 20m; max break 1h (total day span 9h 20m).
- * Interns: flexible punch, late not counted.
+ * Interns: flexible punch (morning or evening OK), late not counted, full day = 4 hours.
+ * Punch-out with any work is never Absent (under 4h = Half Day).
  */
 class Attendance
 {
@@ -21,6 +22,9 @@ class Attendance
         'break_minutes' => 60, 'half_day_minutes' => 250, 'full_day_minutes' => 500,
         'week_offs' => '0', 'half_week_offs' => '',
     ];
+
+    /** Internship full-day target (minutes). */
+    public const INTERN_FULL_DAY_MINUTES = 240;
 
     public const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -239,21 +243,28 @@ class Attendance
                     $shiftEnd += 86400;
                 }
                 $shiftLength = intdiv($shiftEnd - strtotime($row['attendance_date'] . ' ' . $shift['start_time']), 60);
-                $early = min($shiftLength, max(0, intdiv($shiftEnd - time(), 60)));
+                $skip = self::skipsLate($employeeId, $shift);
+                $early = $skip ? 0 : min($shiftLength, max(0, intdiv($shiftEnd - time(), 60)));
+                $lateKeep = $skip ? 0 : (int) ($row['late_minutes'] ?? 0);
                 $overtime = max(0, $worked - (int) $shift['full_day_minutes']);
-                $status = match (true) {
-                    $worked < (int) $shift['half_day_minutes'] => 'absent',
-                    $worked < (int) $shift['full_day_minutes'] => 'half_day',
-                    default => ((int) ($row['late_minutes'] ?? 0) > 0 ? 'late' : 'present'),
-                };
+                $status = self::dayStatus($worked, $shift, $lateKeep, $employeeId);
 
                 Database::run(
-                    'UPDATE attendance SET punch_out = ?, working_minutes = ?, break_minutes = ?, overtime_minutes = ?, early_leave_minutes = ?, status = ?, updated_at = NOW() WHERE id = ?',
-                    [$now, $worked, $breakMin, $overtime, $early, $status, $row['id']]
+                    'UPDATE attendance SET punch_out = ?, working_minutes = ?, break_minutes = ?, overtime_minutes = ?, early_leave_minutes = ?, late_minutes = ?, status = ?, updated_at = NOW() WHERE id = ?',
+                    [$now, $worked, $breakMin, $overtime, $early, $lateKeep, $status, $row['id']]
                 );
                 self::log($employeeId, 'out', $now);
+                $statusNote = '';
+                if ($skip) {
+                    $need = (int) ($shift['full_day_minutes'] ?? self::INTERN_FULL_DAY_MINUTES);
+                    if ($worked > 0 && $worked < $need) {
+                        $statusNote = ' · Half Day (need ' . hm($need) . ' for full day)';
+                    } elseif ($worked >= $need) {
+                        $statusNote = ' · Present';
+                    }
+                }
                 notify_hr('Punch Out · ' . $name, $name . ' punched out at ' . $nowLabel . ' · worked ' . hm($worked, '0m') . ($breakMin ? ', break ' . hm($breakMin) : ''), 'attendance');
-                return ['ok' => true, 'message' => 'Punched out at ' . $nowLabel . ' · Worked ' . hm($worked, '0m')];
+                return ['ok' => true, 'message' => 'Punched out at ' . $nowLabel . ' · Worked ' . hm($worked, '0m') . $statusNote];
         }
 
         return self::fail('Unknown punch action.');
@@ -292,6 +303,54 @@ class Attendance
     private static function fail(string $message): array
     {
         return ['ok' => false, 'message' => $message];
+    }
+
+    /**
+     * Final day status after punch-out.
+     * Intern / skip_late: flexible 4h day — never Absent if any work done;
+     *   >= full (4h) = Present, else Half Day. Late never applied.
+     * General / BDM: under half = Absent, under full = Half Day, else Present/Late.
+     */
+    public static function dayStatus(int $workedMinutes, array $shift, int $lateMinutes = 0, ?int $employeeId = null): string
+    {
+        $skip = !empty($shift['skip_late']) || ($employeeId && self::skipsLate($employeeId, $shift));
+        if ($skip) {
+            $full = max(1, (int) ($shift['full_day_minutes'] ?? self::INTERN_FULL_DAY_MINUTES));
+            if ($workedMinutes <= 0) {
+                return 'absent';
+            }
+            return $workedMinutes >= $full ? 'present' : 'half_day';
+        }
+        $half = (int) ($shift['half_day_minutes'] ?? 250);
+        $full = (int) ($shift['full_day_minutes'] ?? 500);
+        if ($workedMinutes < $half) {
+            return 'absent';
+        }
+        if ($workedMinutes < $full) {
+            return 'half_day';
+        }
+        return $lateMinutes > 0 ? 'late' : 'present';
+    }
+
+    /** Recompute display status for HR grids (fixes old intern Absent/Half Day rows). */
+    public static function displayStatus(?array $row, array $shift, ?int $employeeId = null, bool $stillWorking = false): string
+    {
+        if (!$row || empty($row['punch_in'])) {
+            return '';
+        }
+        if ($stillWorking || empty($row['punch_out'])) {
+            $late = (int) ($row['late_minutes'] ?? 0);
+            if (!empty($shift['skip_late']) || ($employeeId && self::skipsLate($employeeId, $shift))) {
+                return 'present';
+            }
+            return $late > 0 ? 'late' : 'present';
+        }
+        return self::dayStatus(
+            (int) ($row['working_minutes'] ?? 0),
+            $shift,
+            (int) ($row['late_minutes'] ?? 0),
+            $employeeId
+        );
     }
 
     /** Live label for a row on the HR grid. */

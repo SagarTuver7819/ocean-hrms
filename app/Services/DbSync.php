@@ -220,7 +220,7 @@ class DbSync
             $log[] = 'ok · holidays.to_date backfilled';
         }
 
-        // Leave policy: 1 paid leave / month from joining, no year carry-forward
+        // Leave policy: only Paid Leave + Sick Leave. PL = 1/month from Oct-2026 / joining, no carry-forward. SL = unpaid unlimited.
         $db->exec(
             "INSERT INTO leave_types (name, code, days_per_year, monthly_accrual, is_paid, status, created_at)
              SELECT 'Paid Leave', 'PL', 12, 1, 1, 1, NOW() FROM DUAL
@@ -229,12 +229,19 @@ class DbSync
         $db->exec("UPDATE leave_types SET name = 'Paid Leave', monthly_accrual = 1, days_per_year = 12, is_paid = 1, status = 1 WHERE code = 'PL'");
         $db->exec(
             "INSERT INTO leave_types (name, code, days_per_year, monthly_accrual, is_paid, status, created_at)
-             SELECT 'Unpaid Leave', 'UL', 0, 0, 0, 1, NOW() FROM DUAL
-             WHERE NOT EXISTS (SELECT 1 FROM leave_types WHERE code = 'UL')"
+             SELECT 'Sick Leave', 'SL', 0, 0, 0, 1, NOW() FROM DUAL
+             WHERE NOT EXISTS (SELECT 1 FROM leave_types WHERE code = 'SL')"
         );
-        $db->exec("UPDATE leave_types SET monthly_accrual = 0, days_per_year = 0, is_paid = 0, status = 1 WHERE code = 'UL'");
-        $db->exec("UPDATE leave_types SET status = 0 WHERE code NOT IN ('PL','UL') AND status = 1");
-        $log[] = 'ok · leave policy · PL 1/month · no carry-forward (yearly reset)';
+        $db->exec("UPDATE leave_types SET name = 'Sick Leave', monthly_accrual = 0, days_per_year = 0, is_paid = 0, status = 1 WHERE code = 'SL'");
+        // Map old Unpaid Leave requests → Sick Leave, then deactivate UL + every other type
+        $slId = (int) $db->query("SELECT id FROM leave_types WHERE code = 'SL' LIMIT 1")->fetchColumn();
+        $ulId = (int) $db->query("SELECT id FROM leave_types WHERE code = 'UL' LIMIT 1")->fetchColumn();
+        if ($slId && $ulId) {
+            $db->exec("UPDATE leave_requests SET leave_type_id = {$slId} WHERE leave_type_id = {$ulId}");
+        }
+        $db->exec("UPDATE leave_types SET status = 0 WHERE code NOT IN ('PL','SL')");
+        $synced = \App\Services\Leave::syncAllBalances((int) date('Y'));
+        $log[] = 'ok · leave policy · PL 1/month (from Oct 2026 · no carry-forward) · SL unpaid · synced ' . $synced . ' employees';
 
         // Ocean shift policies
         $upsertShift = static function (
@@ -272,8 +279,8 @@ class DbSync
 
         // General: flex 9–10, grace to 10:15, work 8h20, max break 1h, total span 9h20 → 18:20
         $genId = $upsertShift('GEN', 'General Shift', '09:00:00', '18:20:00', 60, 15, 60, 500, 250, '0', '', 0);
-        // Internship: flexible, no late
-        $intId = $upsertShift('INT', 'Internship Shift', '09:00:00', '18:20:00', 0, 0, 60, 500, 250, '0', '', 1);
+        // Internship: flexible (morning/evening OK), no late, full day = 4h, punch-out never Absent if worked
+        $intId = $upsertShift('INT', 'Internship Shift', '09:00:00', '18:20:00', 540, 0, 30, 240, 1, '0', '', 1);
         // BDM: Sunday off + Saturday 2nd half off
         $bdmId = $upsertShift('BDM', 'BDM Shift', '09:00:00', '18:20:00', 60, 15, 60, 500, 250, '0', '6', 0);
 
@@ -305,7 +312,7 @@ class DbSync
         $st->execute([$genId]);
         $log[] = 'ok · assigned General shift to other employees (' . $st->rowCount() . ')';
 
-        $syncVersion = '2026-10-28-shift-leave-policy-v1';
+        $syncVersion = '2026-10-28-intern-4h-flex-v3';
         $db->prepare(
             "INSERT INTO settings (setting_key, setting_value, updated_at) VALUES ('db_sync_version', ?, NOW())
              ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()"

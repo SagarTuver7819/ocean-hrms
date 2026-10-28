@@ -13,12 +13,19 @@ class LeaveController extends Controller
     {
         if (Auth::isEmployeePortal()) {
             $empId = (int) Auth::employeeId();
+            $join = Database::value('SELECT joining_date FROM employees WHERE id = ?', [$empId]);
+            $year = (int) date('Y');
             $this->view('employee/leave', [
                 'title' => 'My Leave',
                 'page' => 'emp-leave',
                 'balances' => Leave::balances($empId),
+                'joiningDate' => $join,
+                'creditedMonths' => Leave::creditedMonths($join, $year),
+                'creditedMonthList' => Leave::creditedMonthList($join, $year),
+                'policyStart' => Leave::POLICY_START,
+                'year' => $year,
                 'requests' => Database::all(
-                    'SELECT lr.*, lt.name AS leave_type, lt.code FROM leave_requests lr
+                    'SELECT lr.*, lt.name AS leave_type, lt.code, lt.is_paid FROM leave_requests lr
                      JOIN leave_types lt ON lt.id = lr.leave_type_id
                      WHERE lr.employee_id = ? ORDER BY lr.id DESC',
                     [$empId]
@@ -123,7 +130,7 @@ class LeaveController extends Controller
             if ((int) $b['leave_type_id'] === $typeId) $balance = $b;
         }
         if ($balance && $balance['tracked'] && $days > $balance['available']) {
-            $this->flash('error', 'Only ' . (float) $balance['available'] . ' ' . $type['name'] . ' available (1 credited every month). Apply the remaining days as Unpaid Leave.');
+            $this->flash('error', 'Only ' . (float) $balance['available'] . ' Paid Leave available (1 credited every month · no carry-forward). Extra days apply as Sick Leave (unpaid).');
             $this->redirect($back);
         }
 

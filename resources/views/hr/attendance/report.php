@@ -8,12 +8,16 @@ $ranges = [
     'This Month' => [date('Y-m-01'), $today],
     'Last Month' => [date('Y-m-01', strtotime('first day of last month')), date('Y-m-t', strtotime('last day of last month'))],
 ];
-$q = fn(array $r) => url('attendance/report?from=' . $r[0] . '&to=' . $r[1] . ($employeeId ? '&employee_id=' . $employeeId : '') . ($departmentId ? '&department_id=' . $departmentId : ''));
+$shiftId = (int) ($shiftId ?? 0);
+$q = fn(array $r) => url('attendance/report?from=' . $r[0] . '&to=' . $r[1]
+    . ($employeeId ? '&employee_id=' . $employeeId : '')
+    . ($departmentId ? '&department_id=' . $departmentId : '')
+    . ($shiftId ? '&shift_id=' . $shiftId : ''));
 ?>
 <div class="page-head">
   <div>
     <h1>Daily Attendance Report</h1>
-    <p><?= $from === $to ? date('l, d M Y', strtotime($from)) : date('d M Y', strtotime($from)) . ' – ' . date('d M Y', strtotime($to)) ?> · Punch, break &amp; working-hour details · Export to Excel</p>
+    <p><?= $from === $to ? date('l, d M Y', strtotime($from)) : date('d M Y', strtotime($from)) . ' – ' . date('d M Y', strtotime($to)) ?> · Shift-wise punch &amp; hours · Export Excel</p>
   </div>
   <div class="d-flex gap-2">
     <a href="<?= url('attendance') ?>" class="btn btn-sm btn-outline-ink"><i class="fa-solid fa-signal me-1"></i>Live Today</a>
@@ -25,6 +29,15 @@ $q = fn(array $r) => url('attendance/report?from=' . $r[0] . '&to=' . $r[1] . ($
   <form class="row g-2 align-items-end" method="get">
     <div class="col-md-2"><label class="form-label">From</label><input type="date" name="from" class="form-control" value="<?= e($from) ?>"></div>
     <div class="col-md-2"><label class="form-label">To</label><input type="date" name="to" class="form-control" value="<?= e($to) ?>"></div>
+    <div class="col-md-2">
+      <label class="form-label">Shift</label>
+      <select name="shift_id" class="form-select">
+        <option value="">All shifts</option>
+        <?php foreach ($shifts as $s): ?>
+          <option value="<?= (int) $s['id'] ?>" <?= $shiftId === (int) $s['id'] ? 'selected' : '' ?>><?= e(($s['code'] ? $s['code'] . ' · ' : '') . $s['name']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
     <div class="col-md-3">
       <label class="form-label">Employee</label>
       <select name="employee_id" class="form-select select2">
@@ -32,14 +45,14 @@ $q = fn(array $r) => url('attendance/report?from=' . $r[0] . '&to=' . $r[1] . ($
         <?php foreach ($employees as $emp): ?><option value="<?= $emp['id'] ?>" <?= $employeeId === (int) $emp['id'] ? 'selected' : '' ?>><?= e($emp['employee_code'] . ' – ' . $emp['first_name'] . ' ' . $emp['last_name']) ?></option><?php endforeach; ?>
       </select>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <label class="form-label">Department</label>
       <select name="department_id" class="form-select">
         <option value="">All departments</option>
         <?php foreach ($departments as $d): ?><option value="<?= $d['id'] ?>" <?= $departmentId === (int) $d['id'] ? 'selected' : '' ?>><?= e($d['name']) ?></option><?php endforeach; ?>
       </select>
     </div>
-    <div class="col-md-2"><button class="btn btn-brand w-100"><i class="fa-solid fa-filter me-1"></i>Show Report</button></div>
+    <div class="col-md-1"><button class="btn btn-brand w-100"><i class="fa-solid fa-filter"></i></button></div>
     <div class="col-12">
       <div class="quick-range">
         <?php foreach ($ranges as $label => $r): ?><a href="<?= $q($r) ?>" class="<?= $r === [$from, $to] ? 'active' : '' ?>"><?= $label ?></a><?php endforeach; ?>
@@ -48,11 +61,13 @@ $q = fn(array $r) => url('attendance/report?from=' . $r[0] . '&to=' . $r[1] . ($
   </form>
 </div>
 
-<div class="metric-row">
+<div class="metric-row cols-6">
   <div class="metric-card metric-dark"><span class="m-ico"><i class="fa-solid fa-list-check"></i></span><div class="label">Records</div><div class="value"><?= $totals['days'] ?></div><div class="sub">attendance entries</div></div>
-  <div class="metric-card metric-teal"><span class="m-ico"><i class="fa-solid fa-hourglass-half"></i></span><div class="label">Total Worked</div><div class="value" style="font-size:22px"><?= hm($totals['worked'], '0h') ?></div><div class="sub">Overtime <?= hm($totals['overtime'], '0h') ?></div></div>
-  <div class="metric-card metric-sky"><span class="m-ico"><i class="fa-solid fa-mug-hot"></i></span><div class="label">Total Break</div><div class="value" style="font-size:22px"><?= hm($totals['break'], '0h') ?></div><div class="sub">all breaks</div></div>
-  <div class="metric-card metric-blue"><span class="m-ico"><i class="fa-solid fa-clock"></i></span><div class="label">Late Arrivals</div><div class="value"><?= $totals['late'] ?></div><div class="sub">after grace time</div></div>
+  <div class="metric-card metric-green"><span class="m-ico"><i class="fa-solid fa-user-check"></i></span><div class="label">Present</div><div class="value"><?= (int) ($totals['present'] ?? 0) ?></div><div class="sub">full / late / intern</div></div>
+  <div class="metric-card metric-sky"><span class="m-ico"><i class="fa-solid fa-adjust"></i></span><div class="label">Half Day</div><div class="value"><?= (int) ($totals['half_day'] ?? 0) ?></div><div class="sub">below full hours</div></div>
+  <div class="metric-card metric-teal"><span class="m-ico"><i class="fa-solid fa-hourglass-half"></i></span><div class="label">Total Worked</div><div class="value" style="font-size:20px"><?= hm($totals['worked'], '0h') ?></div><div class="sub">OT <?= hm($totals['overtime'], '0h') ?></div></div>
+  <div class="metric-card metric-violet"><span class="m-ico"><i class="fa-solid fa-mug-hot"></i></span><div class="label">Total Break</div><div class="value" style="font-size:20px"><?= hm($totals['break'], '0h') ?></div><div class="sub">all breaks</div></div>
+  <div class="metric-card metric-blue"><span class="m-ico"><i class="fa-solid fa-clock"></i></span><div class="label">Late</div><div class="value"><?= $totals['late'] ?></div><div class="sub">excl. internship</div></div>
 </div>
 
 <div class="panel table-card">
@@ -66,21 +81,28 @@ $q = fn(array $r) => url('attendance/report?from=' . $r[0] . '&to=' . $r[1] . ($
           </tr>
         </thead>
         <tbody>
-        <?php foreach ($rows as $i => $r): ?>
+        <?php foreach ($rows as $i => $r):
+          $st = $r['day_status'] ?? $r['status'];
+        ?>
           <tr>
             <td><?= $i + 1 ?></td>
             <td data-order="<?= e($r['attendance_date']) ?>"><b><?= date('d M Y', strtotime($r['attendance_date'])) ?></b><small class="d-block text-muted"><?= date('l', strtotime($r['attendance_date'])) ?></small></td>
-            <td class="att-emp"><b><?= e($r['first_name'] . ' ' . $r['last_name']) ?></b><small><?= e($r['employee_code']) ?> · <?= e($r['department_name'] ?? '—') ?></small></td>
-            <td><small><?= e($r['shift_name'] ?? '—') ?></small></td>
+            <td class="att-emp">
+              <b><?= e($r['first_name'] . ' ' . $r['last_name']) ?></b>
+              <small><?= e($r['employee_code']) ?> · <?= e($r['department_name'] ?? '—') ?><?= ($r['employment_type'] ?? '') === 'intern' ? ' · Intern' : '' ?></small>
+            </td>
+            <td><small class="fw-bold"><?= e($r['shift_name'] ?? '—') ?></small><?php if (!empty($r['shift_code'])): ?><small class="d-block text-muted"><?= e($r['shift_code']) ?></small><?php endif; ?></td>
             <td class="fw-bold"><?= format_time($r['punch_in']) ?></td>
             <td class="att-breaks"><?= break_chips($r['break_list']) ?></td>
             <td class="fw-bold"><?= format_time($r['punch_out']) ?></td>
             <td><?= hm($r['break_minutes']) ?></td>
             <td class="fw-bold"><?= hm($r['working_minutes']) ?></td>
-            <td class="<?= $r['late_minutes'] ? 'text-danger fw-bold' : '' ?>"><?= hm($r['late_minutes']) ?></td>
+            <td class="<?= (!empty($r['show_late']) && $r['late_minutes']) ? 'text-danger fw-bold' : '' ?>">
+              <?= !empty($r['show_late']) ? hm($r['late_minutes']) : '<span class="text-muted">N/A</span>' ?>
+            </td>
             <td><?= hm($r['early_leave_minutes']) ?></td>
             <td><?= hm($r['overtime_minutes']) ?></td>
-            <td><span class="badge-status badge-<?= e($r['status']) ?>"><?= e(ucwords(str_replace('_', ' ', $r['status']))) ?></span></td>
+            <td><span class="badge-status badge-<?= e($st) ?>"><?= e(ucwords(str_replace('_', ' ', (string) $st))) ?></span></td>
           </tr>
         <?php endforeach; ?>
         </tbody>

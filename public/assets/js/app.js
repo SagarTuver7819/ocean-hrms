@@ -380,12 +380,17 @@ $(function () {
     }
     if (!from || !to) return $('#leaveDays').text('Select dates to see leave days');
     const half = sameDay && $leaveForm.find('[name=leave_duration]:checked').val() === 'half' ? 1 : 0;
-    $.getJSON($leaveForm.data('days-url'), { from: from, to: to, half_day: half }, function (r) {
+    $.getJSON($leaveForm.data('days-url'), {
+      from: from,
+      to: to,
+      half_day: half,
+      leave_duration: half ? 'half' : 'full'
+    }, function (r) {
       $('#leaveDays').html(r.message);
     });
   };
   if ($leaveForm.length) {
-    $leaveForm.on('change', '[name=from_date], [name=to_date], [name=leave_duration]', function () {
+    $leaveForm.on('change', '[name=from_date], [name=to_date], [name=leave_duration], [name=leave_type_id]', function () {
       const $to = $leaveForm.find('[name=to_date]'), from = $leaveForm.find('[name=from_date]').val();
       if (from && (!$to.val() || $to.val() < from)) $to.val(from);
       $to.attr('min', from);
