@@ -110,14 +110,14 @@ $pdfUrl = $q($month, $includeInterns, true);
             </td>
             <td><small><?= e($r['designation_name'] ?: '—') ?></small></td>
             <td data-order="<?= e($r['joining_date'] ?? '') ?>"><small><?= $r['joining_date'] ? date('d-m-Y', strtotime($r['joining_date'])) : '—' ?></small></td>
-            <td class="fw-bold text-success text-end"><?= $r['has_salary'] ? money($r['monthly_salary']) : '—' ?></td>
+            <td class="text-end sal-v-salary"><?= $r['has_salary'] ? money($r['monthly_salary']) : '—' ?></td>
             <td class="text-end"><?= $num($r['present']) ?></td>
             <td class="text-end"><?= $num($r['week_off']) ?></td>
             <td class="text-end"><?= $num($r['holiday']) ?></td>
             <td class="text-end" title="Paid Leave"><?= $num($r['leave']) ?></td>
-            <td class="text-end <?= $r['absent'] > 0 ? 'text-danger' : '' ?>"><?= $num($r['absent']) ?></td>
+            <td class="text-end <?= $r['absent'] > 0 ? 'sal-v-absent' : '' ?>"><?= $num($r['absent']) ?></td>
             <td class="fw-bold text-end"><?= $num($r['total_days']) ?></td>
-            <td class="fw-bold text-end"><?= $r['has_salary'] ? money($r['gross']) : '—' ?></td>
+            <td class="text-end sal-v-gross"><?= $r['has_salary'] ? money($r['gross']) : '—' ?></td>
             <td class="text-end">
               <?php if ($r['has_salary']): ?>
                 <form method="post" action="<?= url('salary/employee/' . $r['employee_id'] . '/pt') ?>" class="sal-pt-edit">
@@ -129,8 +129,8 @@ $pdfUrl = $q($month, $includeInterns, true);
                 </form>
               <?php else: ?>—<?php endif; ?>
             </td>
-            <td class="text-end text-danger"><?= $r['has_salary'] ? money($r['professional_tax']) : '—' ?></td>
-            <td class="fw-bold text-end text-success"><?= $r['has_salary'] ? money($r['net']) : '—' ?></td>
+            <td class="text-end sal-v-ded"><?= $r['has_salary'] ? money($r['professional_tax']) : '—' ?></td>
+            <td class="text-end sal-v-net"><?= $r['has_salary'] ? money($r['net']) : '—' ?></td>
             <td><small class="font-monospace"><?= e($r['account_number'] ?: '—') ?></small></td>
             <td><small class="font-monospace"><?= e($r['ifsc_code'] ?: '—') ?></small></td>
             <td>
@@ -142,17 +142,17 @@ $pdfUrl = $q($month, $includeInterns, true);
         <tfoot>
           <tr class="sal-reg-foot">
             <th colspan="4">Total</th>
-            <th class="text-end"><?= money($t['decided']) ?></th>
+            <th class="text-end sal-v-salary"><?= money($t['decided']) ?></th>
             <th class="text-end"><?= $num($t['present']) ?></th>
             <th class="text-end"><?= $num($t['week_off']) ?></th>
             <th class="text-end"><?= $num($t['holiday']) ?></th>
             <th class="text-end"><?= $num($t['leave']) ?></th>
-            <th class="text-end"><?= $num($t['absent']) ?></th>
+            <th class="text-end sal-v-absent"><?= $num($t['absent']) ?></th>
             <th class="text-end"><?= $num($t['total_days']) ?></th>
-            <th class="text-end"><?= money($t['gross']) ?></th>
+            <th class="text-end sal-v-gross"><?= money($t['gross']) ?></th>
             <th></th>
-            <th class="text-end"><?= money($t['pt']) ?></th>
-            <th class="text-end"><?= money($t['net']) ?></th>
+            <th class="text-end sal-v-ded"><?= money($t['pt']) ?></th>
+            <th class="text-end sal-v-net"><?= money($t['net']) ?></th>
             <th colspan="3"></th>
           </tr>
         </tfoot>
@@ -163,23 +163,29 @@ $pdfUrl = $q($month, $includeInterns, true);
 
 <style>
 .sal-reg-table { font-size: 12.5px; }
-.sal-reg-table th, .sal-reg-table td { white-space: nowrap; vertical-align: middle; }
-.sal-h-group th { text-align: center; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; border-bottom: 0 !important; padding: 8px 10px !important; }
-.sal-g-info { background: #eef2f7 !important; color: #334155; }
-.sal-g-earn { background: #dcfce7 !important; color: #166534; }
-.sal-g-gross { background: #bbf7d0 !important; color: #14532d; }
-.sal-g-ded { background: #fef3c7 !important; color: #92400e; }
-.sal-g-net { background: #ffedd5 !important; color: #9a3412; }
-.sal-g-bank { background: #e2e8f0 !important; color: #334155; }
-.sal-h-cols th { background: #f8fafc !important; font-size: 11px; font-weight: 800; }
-.sal-row-nosalary td { background: #fafafa; }
+.sal-reg-table th, .sal-reg-table td { white-space: nowrap; vertical-align: middle; border-color: #e7d3b0 !important; }
+.sal-h-group th {
+  text-align: center; font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+  border-bottom: 0 !important; padding: 8px 10px !important;
+  background: #fff4e5 !important; color: #8a5200 !important; font-weight: 800;
+}
+.sal-g-info, .sal-g-earn, .sal-g-gross, .sal-g-ded, .sal-g-net, .sal-g-bank {
+  background: #fff4e5 !important; color: #8a5200 !important;
+}
+.sal-h-cols th { background: #fffaf2 !important; color: #8a5200 !important; font-size: 11px; font-weight: 800; }
+.sal-reg-table tbody tr:nth-child(even) td { background: #fffcf7; }
+.sal-row-nosalary td { background: #fafafa !important; }
+.sal-v-salary, .sal-v-net { color: #15803d !important; font-weight: 800; }
+.sal-v-gross { color: #211F23 !important; font-weight: 800; }
+.sal-v-absent { color: #dc2626 !important; font-weight: 700; }
+.sal-v-ded { color: #e11d48 !important; font-weight: 700; }
 .sal-reg-foot th {
-  background: #fff7ea !important; border-top: 2px solid #f5c56a !important;
-  font-weight: 800; color: var(--ink);
+  background: #fff4e5 !important; border-top: 2px solid #F5A01B !important;
+  font-weight: 800; color: #8a5200;
 }
 .sal-pt-edit { margin: 0; min-width: 72px; }
 .sal-pt-edit .form-control {
-  font-weight: 800; text-align: right; border-color: #fde7c2; background: #fffaf2;
+  font-weight: 800; text-align: right; border-color: #fde7c2; background: #fffaf2; color: #8a5200;
   padding: 2px 6px; height: 28px; font-size: 12px;
 }
 </style>
