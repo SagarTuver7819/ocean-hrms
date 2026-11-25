@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>404 · Ocean HRMS</title>
   <style>
-    body{font-family:"Noto Serif",Georgia,"Times New Roman",serif;background:#f3f4f6;display:grid;place-items:center;min-height:100vh;margin:0;color:#211F23}
+    body{font-family:"Cabin",Calibri,"Segoe UI",Arial,sans-serif;background:#f3f4f6;display:grid;place-items:center;min-height:100vh;margin:0;color:#211F23}
     .box{background:#fff;padding:40px;border-radius:20px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,.06)}
     h1{color:#F5A01B;font-size:64px;margin:0}
     a{color:#F5A01B;font-weight:700;text-decoration:none}

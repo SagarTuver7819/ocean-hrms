@@ -25,7 +25,7 @@ if (!$paras && $desc !== '') {
   <style>
     body { font-size: 12px; }
     .ann-sheet {
-      font-family: "Noto Serif", Georgia, "Times New Roman", serif;
+      font-family: "Cabin", Calibri, "Segoe UI", Arial, sans-serif;
       color: var(--ink);
     }
     .ann-kicker {

@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= asset('assets/css/login.css') ?>?v=<?= @filemtime(BASE_PATH . '/public/assets/css/login.css') ?>">
 </head>
 <body class="login-page">
@@ -41,7 +41,7 @@
           <rect class="hr-screen" x="38" y="28" width="52" height="26" rx="2" fill="#22c55e" opacity="0.55"/>
           <rect x="52" y="66" width="28" height="4" rx="1" fill="#94a3b8"/>
           <circle cx="128" cy="40" r="10" fill="#F5A01B" opacity="0.95"/>
-          <text x="128" y="44" text-anchor="middle" font-size="9" font-weight="800" fill="#fff" font-family="Noto Serif,serif">HR</text>
+          <text x="128" y="44" text-anchor="middle" font-size="9" font-weight="800" fill="#fff" font-family="Cabin,sans-serif">HR</text>
         </svg>
         <span class="hr-paper p1"></span>
         <span class="hr-paper p2"></span>
@@ -81,7 +81,7 @@
         </span>
         <span class="hr-item hot" style="--d:-15s">
           <span class="hr-item-ico">
-            <svg viewBox="0 0 40 40"><rect x="6" y="6" width="28" height="28" rx="3" fill="#16a34a"/><text x="20" y="24" text-anchor="middle" font-size="14" font-weight="800" fill="#fff" font-family="Noto Serif,serif">₹</text><rect x="12" y="28" width="16" height="3" rx="1" fill="#bbf7d0"/></svg>
+            <svg viewBox="0 0 40 40"><rect x="6" y="6" width="28" height="28" rx="3" fill="#16a34a"/><text x="20" y="24" text-anchor="middle" font-size="14" font-weight="800" fill="#fff" font-family="Cabin,sans-serif">₹</text><rect x="12" y="28" width="16" height="3" rx="1" fill="#bbf7d0"/></svg>
           </span>
           <b class="hr-item-label">PAY</b>
         </span>
@@ -91,7 +91,7 @@
         <svg viewBox="0 0 70 100" width="70" height="100">
           <path d="M8 100 V22 Q8 12 18 12 H52 Q62 12 62 22 V100" fill="none" stroke="#475569" stroke-width="5" stroke-linecap="round"/>
           <rect x="16" y="0" width="38" height="16" rx="8" fill="#F5A01B"/>
-          <text x="35" y="11.5" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" font-family="Noto Serif,serif">HR</text>
+          <text x="35" y="11.5" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" font-family="Cabin,sans-serif">HR</text>
           <circle class="hr-lamp" cx="58" cy="6" r="3.5" fill="#22c55e"/>
         </svg>
         <span class="hr-beam"></span>

@@ -17,7 +17,7 @@
   --red: #dc2626;
   --blue: #2563eb;
   --teal: #0d9488;
-  --font: "Noto Serif", Georgia, "Times New Roman", serif;
+  --font: "Cabin", Calibri, "Segoe UI", Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }

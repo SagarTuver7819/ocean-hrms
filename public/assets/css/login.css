@@ -10,7 +10,7 @@
   --line: #e5e7eb;
   --surface: #ffffff;
   --page: #ffffff;
-  --font: "Noto Serif", Georgia, "Times New Roman", serif;
+  --font: "Cabin", Calibri, "Segoe UI", Arial, sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
