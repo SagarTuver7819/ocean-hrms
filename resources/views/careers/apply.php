@@ -51,6 +51,7 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
     <?= csrf_field() ?>
     <!-- Honeypot: readonly blocks mobile autofill; bots that type still get caught server-side -->
     <input type="text" name="website" class="cr-hp" tabindex="-1" autocomplete="off" aria-hidden="true" readonly>
+    <datalist id="crDegrees"><?php foreach ($degrees as $dg): ?><option value="<?= e($dg) ?>"><?php endforeach; ?></datalist>
 
     <div class="cr-progress">
       <div class="cr-progress-bar"><span id="crBar"></span></div>
@@ -106,41 +107,62 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
     </section>
 
     <!-- Step 2: Personal -->
-    <section class="cr-card cr-step d-none" data-step="2" data-title="Personal Details">
-      <h2><i class="fa-solid fa-user"></i> Personal Details</h2>
+    <section class="cr-card cr-step d-none" data-step="2" data-title="Basic Details">
+      <h2><i class="fa-solid fa-user"></i> Basic Details</h2>
+      <p class="cr-hint d-none" id="crBasicHint">Internship — only basic details are needed.</p>
       <div class="row g-3">
         <div class="col-12 col-sm-4"><label class="form-label req">First Name</label><input class="form-control" name="first_name" required maxlength="80" autocomplete="given-name"></div>
-        <div class="col-12 col-sm-4"><label class="form-label">Middle Name</label><input class="form-control" name="middle_name" maxlength="80" autocomplete="additional-name"></div>
+        <div class="col-12 col-sm-4 cr-full-only"><label class="form-label">Middle Name</label><input class="form-control" name="middle_name" maxlength="80" autocomplete="additional-name"></div>
         <div class="col-12 col-sm-4"><label class="form-label req">Last Name</label><input class="form-control" name="last_name" required maxlength="80" autocomplete="family-name"></div>
         <div class="col-12 col-sm-6"><label class="form-label req">Mobile</label><input class="form-control" type="tel" name="mobile" required pattern="[6-9][0-9]{9}" maxlength="10" inputmode="numeric" placeholder="10-digit mobile" autocomplete="tel-national"></div>
         <div class="col-12 col-sm-6"><label class="form-label req">Parents Contact Number</label><input class="form-control" type="tel" name="parent_mobile" required pattern="[6-9][0-9]{9}" maxlength="10" inputmode="numeric" placeholder="Father / Mother mobile"></div>
         <div class="col-12"><label class="form-label req">Email</label><input class="form-control" type="email" name="email" required maxlength="150" autocomplete="email"></div>
-        <div class="col-8 col-sm-4"><label class="form-label">Date of Birth</label><input class="form-control" type="date" name="date_of_birth" id="crDob" max="<?= date('Y-m-d', strtotime('-15 years')) ?>"></div>
-        <div class="col-4 col-sm-2"><label class="form-label">Age</label><input class="form-control" id="crAge" readonly tabindex="-1" placeholder="—"></div>
-        <div class="col-6 col-sm-3">
+        <div class="col-8 col-sm-4 cr-full-only"><label class="form-label">Date of Birth</label><input class="form-control" type="date" name="date_of_birth" id="crDob" max="<?= date('Y-m-d', strtotime('-15 years')) ?>"></div>
+        <div class="col-4 col-sm-2 cr-full-only"><label class="form-label">Age</label><input class="form-control" id="crAge" readonly tabindex="-1" placeholder="—"></div>
+        <div class="col-6 col-sm-3 cr-full-only">
           <label class="form-label">Gender</label>
           <select class="form-select" name="gender"><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
         </div>
-        <div class="col-6 col-sm-3">
+        <div class="col-6 col-sm-3 cr-full-only">
           <label class="form-label">Marital Status</label>
           <select class="form-select" name="marital_status"><option value="">Select</option><option>Single</option><option>Married</option><option>Other</option></select>
         </div>
         <div class="col-12"><label class="form-label req">Current Address</label><textarea class="form-control" name="address" rows="2" required maxlength="1000" autocomplete="street-address"></textarea></div>
-        <div class="col-6 col-sm-4"><label class="form-label">City</label><input class="form-control" name="city" maxlength="80"></div>
-        <div class="col-6 col-sm-4"><label class="form-label">State</label><input class="form-control" name="state" maxlength="80" value="Gujarat"></div>
-        <div class="col-12 col-sm-4"><label class="form-label">Pincode</label><input class="form-control" name="pincode" pattern="[0-9]{6}" maxlength="6" inputmode="numeric"></div>
-        <div class="col-12 col-sm-6"><label class="form-label">Aadhaar No.</label><input class="form-control" name="aadhaar_number" pattern="[0-9]{12}" maxlength="12" inputmode="numeric" placeholder="12 digits"></div>
-        <div class="col-12 col-sm-6"><label class="form-label">PAN No.</label><input class="form-control text-uppercase" name="pan_number" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]" maxlength="10" placeholder="ABCDE1234F"></div>
+        <div class="col-6 col-sm-4 cr-full-only"><label class="form-label">City</label><input class="form-control" name="city" maxlength="80"></div>
+        <div class="col-6 col-sm-4 cr-full-only"><label class="form-label">State</label><input class="form-control" name="state" maxlength="80" value="Gujarat"></div>
+        <div class="col-12 col-sm-4 cr-full-only"><label class="form-label">Pincode</label><input class="form-control" name="pincode" pattern="[0-9]{6}" maxlength="6" inputmode="numeric"></div>
+        <div class="col-12 col-sm-6 cr-full-only"><label class="form-label">Aadhaar No.</label><input class="form-control" name="aadhaar_number" pattern="[0-9]{12}" maxlength="12" inputmode="numeric" placeholder="12 digits"></div>
+        <div class="col-12 col-sm-6 cr-full-only"><label class="form-label">PAN No.</label><input class="form-control text-uppercase" name="pan_number" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]" maxlength="10" placeholder="ABCDE1234F"></div>
       </div>
     </section>
 
-    <!-- Step 3: Education -->
-    <section class="cr-card cr-step d-none" data-step="3" data-title="Education">
-      <h2><i class="fa-solid fa-graduation-cap"></i> Education</h2>
-      <p class="cr-hint">Add your qualifications, highest first.</p>
-      <datalist id="crDegrees"><?php foreach ($degrees as $dg): ?><option value="<?= e($dg) ?>"><?php endforeach; ?></datalist>
-      <div id="crEduList"></div>
-      <button type="button" class="cr-btn cr-btn-ghost w-100" id="crAddEdu"><i class="fa-solid fa-plus me-1"></i> Add Qualification</button>
+    <!-- Step 3: Education / Intern Interest -->
+    <section class="cr-card cr-step d-none" data-step="3" data-title="Education" id="crStepEdu">
+      <!-- Internship: degree + technology only -->
+      <div id="crInternSimple" class="d-none">
+        <h2><i class="fa-solid fa-graduation-cap"></i> Degree &amp; Interest</h2>
+        <p class="cr-hint">Tell us your degree and which technology you want to intern in.</p>
+        <div class="mb-3">
+          <label class="form-label req">Degree / Course</label>
+          <input class="form-control" name="intern_degree" id="crInternDegree" list="crDegrees" maxlength="120" placeholder="e.g. B.E. / B.Tech Computer Engineering">
+        </div>
+        <div class="mb-2">
+          <label class="form-label req">Technology Interest</label>
+          <textarea class="form-control" name="intern_tech" id="crInternTech" rows="2" maxlength="1000" placeholder="e.g. Web Development, PHP, React, UI/UX"></textarea>
+        </div>
+        <div class="cr-tags mb-1" id="crInternTechHints">
+          <?php foreach (['Web Development', 'PHP', 'Laravel', 'JavaScript', 'React', 'Flutter', 'UI / UX', 'WordPress', 'Shopify', 'Python', 'Manual Testing'] as $sk): ?>
+            <button type="button" class="cr-tag"><?= e($sk) ?></button>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <!-- Full-time / part-time education -->
+      <div id="crFullEdu">
+        <h2><i class="fa-solid fa-graduation-cap"></i> Education</h2>
+        <p class="cr-hint">Add your qualifications, highest first.</p>
+        <div id="crEduList"></div>
+        <button type="button" class="cr-btn cr-btn-ghost w-100" id="crAddEdu"><i class="fa-solid fa-plus me-1"></i> Add Qualification</button>
+      </div>
     </section>
 
     <!-- Step 4: Experience (hidden for Internship) -->
@@ -198,10 +220,10 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
     </section>
 
     <!-- Step 6: Documents -->
-    <section class="cr-card cr-step d-none" data-step="6" data-title="Documents & Submit">
-      <h2><i class="fa-solid fa-file-arrow-up"></i> Documents &amp; Submit</h2>
-      <div class="row g-3">
-        <div class="col-12 col-sm-6">
+    <section class="cr-card cr-step d-none" data-step="6" data-title="Submit">
+      <h2><i class="fa-solid fa-file-arrow-up"></i> <span id="crSubmitTitle">Documents &amp; Submit</span></h2>
+      <div class="row g-3" id="crDocUploads">
+        <div class="col-12 col-sm-6 cr-full-only">
           <label class="form-label">Passport Photo</label>
           <label class="cr-upload" id="crPhotoBox">
             <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" id="crPhoto">
@@ -209,8 +231,8 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
             <span class="cr-upload-txt"><i class="fa-solid fa-camera"></i> Tap to upload photo<small>JPG / PNG · max 5MB</small></span>
           </label>
         </div>
-        <div class="col-12 col-sm-6">
-          <label class="form-label req">Resume / CV</label>
+        <div class="col-12 col-sm-6" id="crResumeWrap">
+          <label class="form-label req" id="crResumeLabel">Resume / CV</label>
           <label class="cr-upload">
             <input type="file" name="resume" accept=".pdf,.doc,.docx" id="crResume" required>
             <span class="cr-upload-txt" id="crResumeTxt"><i class="fa-solid fa-file-pdf"></i> Tap to upload resume<small>PDF / DOC / DOCX · max 5MB</small></span>

@@ -73,6 +73,25 @@ class CareerController extends Controller
             $source = 'Other: ' . $detail;
         }
 
+        $employmentType = in_array($_POST['employment_type'] ?? '', ['full_time', 'intern', 'part_time'], true)
+            ? $_POST['employment_type'] : 'full_time';
+        $isIntern = $employmentType === 'intern';
+
+        // Internship short form: map degree + technology interest
+        if ($isIntern) {
+            $internDegree = mb_substr(trim((string) ($_POST['intern_degree'] ?? '')), 0, 120);
+            $internTech = mb_substr(trim((string) ($_POST['intern_tech'] ?? $_POST['primary_skills'] ?? '')), 0, 1000);
+            if ($internDegree !== '' && empty($_POST['edu'])) {
+                $_POST['edu'] = [['degree' => $internDegree]];
+            }
+            if ($internTech !== '') {
+                $_POST['primary_skills'] = $internTech;
+            }
+            if ($position === '' || $position === '__other') {
+                $position = 'Intern Employee';
+            }
+        }
+
         $errors = [];
         if ($position === '') $errors[] = 'Please select the position you are applying for.';
         if ($data['first_name'] === '' || $data['last_name'] === '') $errors[] = 'First and last name are required.';
@@ -81,7 +100,16 @@ class CareerController extends Controller
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) $errors[] = 'Enter a valid email address.';
         if ($data['address'] === '') $errors[] = 'Address is required.';
         if (empty($_POST['declaration'])) $errors[] = 'Please accept the declaration.';
-        if (empty($_FILES['resume']) || $_FILES['resume']['error'] === UPLOAD_ERR_NO_FILE) $errors[] = 'Please upload your resume.';
+        if ($isIntern) {
+            $deg = trim((string) ($_POST['intern_degree'] ?? ($_POST['edu'][0]['degree'] ?? '')));
+            $tech = trim((string) ($_POST['primary_skills'] ?? ''));
+            if ($deg === '') $errors[] = 'Please enter your degree / course.';
+            if ($tech === '') $errors[] = 'Please enter your technology interest.';
+        } else {
+            if (empty($_FILES['resume']) || $_FILES['resume']['error'] === UPLOAD_ERR_NO_FILE) {
+                $errors[] = 'Please upload your resume.';
+            }
+        }
         if ($errors) {
             $this->json(['ok' => false, 'message' => implode(' ', $errors)], 422);
         }
@@ -93,10 +121,8 @@ class CareerController extends Controller
         $designationId = $des ? (int) $des['id'] : null;
         $departmentId = $des['department_id'] ?? null;
 
-        $employmentType = in_array($_POST['employment_type'] ?? '', ['full_time', 'intern', 'part_time'], true)
-            ? $_POST['employment_type'] : 'full_time';
         // Internship applicants do not submit work experience
-        $isFresher = (!empty($_POST['is_fresher']) || $employmentType === 'intern') ? 1 : 0;
+        $isFresher = (!empty($_POST['is_fresher']) || $isIntern) ? 1 : 0;
         $experience = [];
         $totalMonths = 0;
         if (!$isFresher) {

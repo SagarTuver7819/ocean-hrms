@@ -6,9 +6,27 @@
 
   const form = $('#crForm');
   const steps = $$('.cr-step', form);
-  const total = steps.length;
   let current = 1;
   let rowIndex = 0;
+
+  function isIntern() {
+    const el = form.elements.employment_type;
+    if (!el) return false;
+    const checked = el instanceof RadioNodeList
+      ? Array.from(el).find(r => r.checked)
+      : (el.checked ? el : null);
+    return !!(checked && checked.value === 'intern');
+  }
+
+  /** Internship: 1→2→3→6 only. Full/Part: all 6 steps. */
+  function path() {
+    return isIntern() ? [1, 2, 3, 6] : [1, 2, 3, 4, 5, 6];
+  }
+  function pathIndex(step) {
+    const p = path();
+    const i = p.indexOf(step);
+    return i < 0 ? 0 : i;
+  }
 
   /* ---------- Intro ---------- */
   $('#crStart').addEventListener('click', () => {
@@ -19,15 +37,21 @@
 
   /* ---------- Step navigation ---------- */
   function show(n) {
+    const p = path();
+    if (!p.includes(n)) n = p[0];
     current = n;
+    const idx = pathIndex(n);
+    const total = p.length;
     steps.forEach(s => s.classList.toggle('d-none', +s.dataset.step !== n));
-    $('#crBar').style.width = (n / total * 100) + '%';
-    $('#crStepTitle').textContent = steps[n - 1].dataset.title;
-    $('#crStepCount').textContent = 'Step ' + n + ' of ' + total;
-    $('#crBack').style.visibility = n === 1 ? 'hidden' : 'visible';
-    $('#crNext').classList.toggle('d-none', n === total);
-    $('#crSubmit').classList.toggle('d-none', n !== total);
-    if (n === total) buildReview();
+    $('#crBar').style.width = ((idx + 1) / total * 100) + '%';
+    const stepEl = steps[n - 1];
+    $('#crStepTitle').textContent = stepEl.dataset.title;
+    $('#crStepCount').textContent = 'Step ' + (idx + 1) + ' of ' + total;
+    $('#crBack').style.visibility = idx === 0 ? 'hidden' : 'visible';
+    const last = p[p.length - 1];
+    $('#crNext').classList.toggle('d-none', n === last);
+    $('#crSubmit').classList.toggle('d-none', n !== last);
+    if (n === last) buildReview();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -41,11 +65,9 @@
   function isVisibleField(f) {
     if (f.disabled || f.type === 'hidden') return false;
     if (f.classList.contains('cr-hp')) return false;
-    // offsetParent is null for display:none ancestors; also skip zero-size non-file fields
     if (f.offsetParent === null && f.type !== 'file' && f.type !== 'checkbox' && f.type !== 'radio') return false;
     const style = window.getComputedStyle(f);
     if (style.visibility === 'hidden' || style.display === 'none') return false;
-    // File / checkbox inside a hidden step or block
     let el = f.parentElement;
     while (el && el !== form) {
       if (el.classList.contains('d-none')) return false;
@@ -61,7 +83,6 @@
       if (!f.checkValidity()) {
         section.classList.add('was-validated');
         const msg = f.validationMessage || ('Please fill: ' + fieldLabel(f));
-        // Native bubbles often fail on mobile for opacity:0 file inputs — use Swal
         const useAlert = preferAlert || f.type === 'file' || f.type === 'checkbox';
         if (useAlert) {
           alertErr(msg);
@@ -77,9 +98,16 @@
   }
 
   $('#crNext').addEventListener('click', () => {
-    if (validateStep(current)) show(current + 1);
+    if (!validateStep(current)) return;
+    const p = path();
+    const i = pathIndex(current);
+    if (i < p.length - 1) show(p[i + 1]);
   });
-  $('#crBack').addEventListener('click', () => { if (current > 1) show(current - 1); });
+  $('#crBack').addEventListener('click', () => {
+    const p = path();
+    const i = pathIndex(current);
+    if (i > 0) show(p[i - 1]);
+  });
 
   /* ---------- Step 1: position ---------- */
   const desig = $('#crDesig');
@@ -175,58 +203,130 @@
   });
   addRow('tplExp', 'crExpList');
 
-  /* Internship → hide experience details (QR form unchanged) */
-  function isIntern() {
-    const el = form.elements.employment_type;
-    if (!el) return false;
-    const checked = el instanceof RadioNodeList
-      ? Array.from(el).find(r => r.checked)
-      : (el.checked ? el : null);
-    return checked && checked.value === 'intern';
-  }
+  /* Internship: short form — Basic Details + Degree + Technology only */
   function syncInternMode() {
     const intern = isIntern();
-    const step = $('#crStepExp');
-    if (step) {
-      step.dataset.title = intern ? 'Stipend & Availability' : 'Experience & CTC';
-      if (current === 4) $('#crStepTitle').textContent = step.dataset.title;
+    form.classList.toggle('cr-intern-mode', intern);
+
+    $$('.cr-full-only').forEach(el => el.classList.toggle('d-none', intern));
+    $('#crBasicHint')?.classList.toggle('d-none', !intern);
+
+    const eduStep = $('#crStepEdu');
+    if (eduStep) {
+      eduStep.dataset.title = intern ? 'Degree & Interest' : 'Education';
+      if (current === 3) $('#crStepTitle').textContent = eduStep.dataset.title;
     }
-    const title = $('#crStepExpTitle');
-    if (title) title.innerHTML = intern
-      ? '<i class="fa-solid fa-building"></i> Stipend &amp; Availability'
-      : '<i class="fa-solid fa-building"></i> Experience &amp; CTC';
-    $('#crInternNote').classList.toggle('d-none', !intern);
-    $('#crFresherWrap').classList.toggle('d-none', intern);
+    $('#crInternSimple')?.classList.toggle('d-none', !intern);
+    $('#crFullEdu')?.classList.toggle('d-none', intern);
+
+    const deg = $('#crInternDegree');
+    const tech = $('#crInternTech');
+    if (deg) deg.required = intern;
+    if (tech) tech.required = intern;
+
+    // Disable full education rows so they don't block validation / submit
+    $$('#crEduList input, #crEduList textarea, #crEduList select').forEach(f => {
+      f.disabled = intern;
+      if (intern) f.required = false;
+    });
+    $('#crAddEdu')?.classList.toggle('d-none', intern);
+
+    // Skills step fields
+    const skills = $('#crSkills');
+    if (skills) {
+      skills.required = !intern;
+      skills.disabled = intern;
+    }
+    $$('#crStepExp input, #crStepExp textarea, #crStepExp select').forEach(f => {
+      if (intern) {
+        f.disabled = true;
+        f.required = false;
+      }
+    });
+    const ctc = $('#crExpCtc');
+    if (ctc) ctc.required = !intern;
+
+    // Resume optional for internship
+    const resume = $('#crResume');
+    const resumeLabel = $('#crResumeLabel');
+    if (resume) resume.required = !intern;
+    if (resumeLabel) {
+      resumeLabel.classList.toggle('req', !intern);
+      resumeLabel.textContent = intern ? 'Resume / CV (optional)' : 'Resume / CV';
+    }
+    $('#crSubmitTitle') && ($('#crSubmitTitle').textContent = intern ? 'Review & Submit' : 'Documents & Submit');
+    const submitStep = steps[5];
+    if (submitStep) submitStep.dataset.title = intern ? 'Submit' : 'Documents & Submit';
+
+    $('#crInternNote')?.classList.toggle('d-none', !intern);
+    $('#crFresherWrap')?.classList.toggle('d-none', intern);
+    // Position dropdown: for internship auto-pick Intern role (not asked separately)
+    const posWrap = desig ? desig.closest('.mb-3') : null;
+    if (posWrap) posWrap.classList.toggle('d-none', intern);
+    if (desig) desig.required = !intern;
+
     if (intern) {
       fresher.checked = true;
       fresher.dispatchEvent(new Event('change'));
       const cur = form.elements.current_ctc;
       if (cur) cur.value = '';
-      $('#crExpCtcLabel').textContent = 'Expected stipend (₹ / year)';
-      $('#crExpCtc').placeholder = 'e.g. 60000';
+      if (desig) {
+        const opt = Array.from(desig.options).find(o => /intern/i.test(o.value) || /intern/i.test(o.textContent));
+        desig.value = opt ? opt.value : '__other';
+        if (!opt) {
+          $('#crOtherWrap')?.classList.remove('d-none');
+          const other = $('#crOther');
+          if (other) { other.required = true; other.value = other.value || 'Intern Employee'; }
+        } else {
+          $('#crOtherWrap')?.classList.add('d-none');
+          const other = $('#crOther');
+          if (other) other.required = false;
+        }
+      }
     } else {
-      $('#crExpCtcLabel').textContent = 'Expected CTC (₹ / year)';
-      $('#crExpCtc').placeholder = 'e.g. 480000';
+      if (posWrap) posWrap.classList.remove('d-none');
+      if (desig) desig.required = true;
+      if (deg) { deg.required = false; deg.value = deg.value; }
+      if (tech) tech.required = false;
+      if (skills) { skills.disabled = false; skills.required = true; }
+      $$('#crEduList input').forEach(f => {
+        f.disabled = false;
+        if (f.name && f.name.includes('[degree]')) f.required = true;
+      });
+      $$('#crStepExp input, #crStepExp textarea, #crStepExp select').forEach(f => {
+        f.disabled = fresher.checked && f.closest('#crExpBlock');
+      });
+      if (ctc) ctc.required = true;
+      fresher.dispatchEvent(new Event('change'));
     }
+
+    // If currently on a skipped step, jump to nearest valid
+    if (!path().includes(current)) show(path()[0]);
+    else show(current);
   }
   $$('input[name="employment_type"]').forEach(r => r.addEventListener('change', syncInternMode));
-  syncInternMode();
 
-  /* ---------- Step 5: skill hints ---------- */
+  /* ---------- Tech / skill tag hints ---------- */
   const skills = $('#crSkills');
-  $$('#crSkillHints .cr-tag').forEach(tag => tag.addEventListener('click', () => {
-    const list = skills.value.split(',').map(s => s.trim()).filter(Boolean);
-    const name = tag.textContent.trim();
-    const idx = list.findIndex(s => s.toLowerCase() === name.toLowerCase());
-    if (idx >= 0) list.splice(idx, 1); else list.push(name);
-    skills.value = list.join(', ');
-    syncTags();
-  }));
-  function syncTags() {
-    const list = skills.value.toLowerCase().split(',').map(s => s.trim());
-    $$('#crSkillHints .cr-tag').forEach(t => t.classList.toggle('on', list.includes(t.textContent.trim().toLowerCase())));
+  function wireTags(containerSel, inputEl) {
+    if (!inputEl) return;
+    $$(containerSel + ' .cr-tag').forEach(tag => tag.addEventListener('click', () => {
+      const list = inputEl.value.split(',').map(s => s.trim()).filter(Boolean);
+      const name = tag.textContent.trim();
+      const idx = list.findIndex(s => s.toLowerCase() === name.toLowerCase());
+      if (idx >= 0) list.splice(idx, 1); else list.push(name);
+      inputEl.value = list.join(', ');
+      syncTagState(containerSel, inputEl);
+    }));
+    inputEl.addEventListener('input', () => syncTagState(containerSel, inputEl));
   }
-  skills.addEventListener('input', syncTags);
+  function syncTagState(containerSel, inputEl) {
+    const list = inputEl.value.toLowerCase().split(',').map(s => s.trim());
+    $$(containerSel + ' .cr-tag').forEach(t => t.classList.toggle('on', list.includes(t.textContent.trim().toLowerCase())));
+  }
+  wireTags('#crSkillHints', skills);
+  wireTags('#crInternTechHints', $('#crInternTech'));
+  syncInternMode();
 
   /* ---------- Step 6: uploads & review ---------- */
   const MAX = 5 * 1024 * 1024;
@@ -262,17 +362,45 @@
     const pos = desig.value === '__other' ? val('position_other') : val('position');
     const name = [val('first_name'), val('middle_name'), val('last_name')].filter(Boolean).join(' ');
     const intern = isIntern();
-    const exp = intern || fresher.checked ? (intern ? 'Internship (no experience)' : 'Fresher') : $('#crTotalExp').textContent;
-    const ctcLabel = intern ? 'Expected stipend' : 'Expected CTC';
-    const rows = [
-      ['Position', pos], ['Type', val('employment_type')],
-      ['Name', name], ['Mobile', val('mobile')], ['Parents Contact', val('parent_mobile')], ['Email', val('email')],
-      ['Experience', exp], [ctcLabel, val('expected_ctc') ? '₹ ' + Number(val('expected_ctc')).toLocaleString('en-IN') + ' / year' : '—'],
-      ['Primary skills', val('primary_skills')],
-    ];
+    let rows;
+    if (intern) {
+      rows = [
+        ['Type', 'Internship'],
+        ['Name', name],
+        ['Mobile', val('mobile')],
+        ['Parents Contact', val('parent_mobile')],
+        ['Email', val('email')],
+        ['Degree', ($('#crInternDegree') && $('#crInternDegree').value.trim()) || '—'],
+        ['Technology Interest', ($('#crInternTech') && $('#crInternTech').value.trim()) || '—'],
+      ];
+    } else {
+      const exp = fresher.checked ? 'Fresher' : $('#crTotalExp').textContent;
+      rows = [
+        ['Position', pos], ['Type', val('employment_type')],
+        ['Name', name], ['Mobile', val('mobile')], ['Parents Contact', val('parent_mobile')], ['Email', val('email')],
+        ['Experience', exp], ['Expected CTC', val('expected_ctc') ? '₹ ' + Number(val('expected_ctc')).toLocaleString('en-IN') + ' / year' : '—'],
+        ['Primary skills', val('primary_skills')],
+      ];
+    }
     $('#crReview').innerHTML = rows.map(r =>
       '<div class="cr-review-row"><span>' + r[0] + '</span><b>' + escapeHtml(r[1] || '—') + '</b></div>'
     ).join('');
+  }
+
+  /** Map internship simple fields into payload fields the server already understands */
+  function prepareInternPayload(fd) {
+    if (!isIntern()) return fd;
+    const degree = ($('#crInternDegree') && $('#crInternDegree').value.trim()) || '';
+    const tech = ($('#crInternTech') && $('#crInternTech').value.trim()) || '';
+    fd.set('primary_skills', tech);
+    fd.set('is_fresher', '1');
+    fd.set('employment_type', 'intern');
+    // Single education row
+    fd.set('edu[0][degree]', degree);
+    // Ensure expected_ctc not required noise
+    fd.delete('expected_ctc');
+    fd.delete('current_ctc');
+    return fd;
   }
 
   /* ---------- Submit (XHR — more reliable on slow mobile uploads) ---------- */
@@ -321,26 +449,27 @@
     e.preventDefault();
     e.stopPropagation();
 
-    for (let i = 1; i <= total; i++) {
-      if (i !== current) {
-        steps[i - 1].classList.remove('d-none');
-        const ok = validateStep(i, { preferAlert: true });
+    for (const step of path()) {
+      if (step !== current) {
+        steps[step - 1].classList.remove('d-none');
+        const ok = validateStep(step, { preferAlert: true });
         if (!ok) {
-          show(i);
+          show(step);
           return;
         }
-        steps[i - 1].classList.add('d-none');
+        steps[step - 1].classList.add('d-none');
       }
     }
     if (!validateStep(current, { preferAlert: true })) return;
 
     const resume = $('#crResume');
-    if (!resume.files || !resume.files.length) {
+    const intern = isIntern();
+    if (!intern && (!resume.files || !resume.files.length)) {
       alertErr('Please upload your resume (PDF / DOC / DOCX).');
       resume.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    if (resume.files[0].size > MAX) {
+    if (resume.files && resume.files[0] && resume.files[0].size > MAX) {
       alertErr('Resume must be under 5MB.');
       return;
     }
@@ -355,9 +484,10 @@
     const setBtn = (label) => {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + label;
     };
-    setBtn('Uploading…');
+    setBtn(intern ? 'Submitting…' : 'Uploading…');
     try {
-      const data = await postApplication(new FormData(form), pct => {
+      const fd = prepareInternPayload(new FormData(form));
+      const data = await postApplication(fd, pct => {
         setBtn(pct < 100 ? ('Uploading… ' + pct + '%') : 'Saving…');
       });
       if (data.ok && data.redirect) {
