@@ -241,7 +241,7 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
           <label class="form-label req" id="crResumeLabel">Resume / CV</label>
           <label class="cr-upload">
             <input type="file" name="resume" accept=".pdf,.doc,.docx" id="crResume" required>
-            <span class="cr-upload-txt" id="crResumeTxt"><i class="fa-solid fa-file-pdf"></i> Tap to upload resume<small>PDF / DOC / DOCX · max 5MB</small></span>
+            <span class="cr-upload-txt" id="crResumeTxt"><i class="fa-solid fa-file-pdf"></i> Tap to upload resume<small>PDF / DOC · max 5MB · use Phone Files (not Drive)</small></span>
           </label>
         </div>
       </div>
