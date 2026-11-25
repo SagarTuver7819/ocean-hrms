@@ -403,64 +403,69 @@
     return fd;
   }
 
-  /* ---------- Submit (XHR — more reliable on slow mobile uploads) ---------- */
-  function postApplication(fd, onProgress) {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', form.action, true);
-      xhr.timeout = 180000; // 3 min for slow mobile data
-      xhr.withCredentials = true;
-      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-      xhr.setRequestHeader('Accept', 'application/json');
-      if (xhr.upload && onProgress) {
-        xhr.upload.onprogress = ev => {
-          if (ev.lengthComputable) onProgress(Math.round((ev.loaded / ev.total) * 100));
-        };
+  /** Validate a step without toggling visibility (avoids clearing file inputs on mobile). */
+  function validateStepHidden(n, { preferAlert = false } = {}) {
+    const section = steps[n - 1];
+    const fields = $$('input, select, textarea', section).filter(f => {
+      if (f.disabled || f.type === 'hidden' || f.classList.contains('cr-hp')) return false;
+      let el = f.parentElement;
+      while (el && el !== section) {
+        if (el.classList.contains('d-none')) return false;
+        el = el.parentElement;
       }
-      xhr.onload = () => {
-        let data = null;
-        try { data = JSON.parse(xhr.responseText || '{}'); } catch (_) {}
-        if (xhr.status >= 200 && xhr.status < 300 && data) {
-          resolve(data);
-          return;
-        }
-        if (data && data.message) {
-          reject(new Error(data.message));
-          return;
-        }
-        if (xhr.status === 413) {
-          reject(new Error('Resume file is too large for the server. Please upload a PDF under 2MB.'));
-          return;
-        }
-        if (xhr.status === 0 || xhr.status >= 500) {
-          reject(new Error('Server could not finish the upload. Please try a smaller PDF or better network.'));
-          return;
-        }
-        reject(new Error('Could not submit application. Please refresh and try again.'));
-      };
-      xhr.onerror = () => reject(new Error('Network interrupted while uploading. Check mobile data / Wi‑Fi and try again.'));
-      xhr.ontimeout = () => reject(new Error('Upload timed out on slow network. Try a smaller PDF (under 2MB) or Wi‑Fi.'));
-      xhr.onabort = () => reject(new Error('Upload was cancelled. Please try again.'));
-      xhr.send(fd);
+      return true;
     });
+    for (const f of fields) {
+      if (!f.checkValidity()) {
+        show(n);
+        return validateStep(n, { preferAlert });
+      }
+    }
+    return true;
   }
 
-  form.addEventListener('submit', async e => {
+  /** Write internship fields into real form controls before native POST. */
+  function syncInternIntoForm() {
+    if (!isIntern()) return;
+    const degree = ($('#crInternDegree') && $('#crInternDegree').value.trim()) || '';
+    const tech = ($('#crInternTech') && $('#crInternTech').value.trim()) || '';
+    let skillsEl = form.elements.primary_skills;
+    if (skillsEl) {
+      skillsEl.disabled = false;
+      skillsEl.required = false;
+      skillsEl.value = tech;
+    }
+    // Ensure one education degree field exists and is enabled
+    let degInput = form.querySelector('#crEduList input[name*="[degree]"]');
+    if (!degInput) {
+      degInput = document.createElement('input');
+      degInput.type = 'hidden';
+      degInput.name = 'edu[0][degree]';
+      form.appendChild(degInput);
+    } else {
+      degInput.disabled = false;
+      degInput.required = false;
+    }
+    degInput.value = degree;
+    let fresherEl = form.elements.is_fresher;
+    if (fresherEl) {
+      if (fresherEl instanceof RadioNodeList) fresherEl = fresherEl[0];
+      fresherEl.disabled = false;
+      fresherEl.checked = true;
+    }
+  }
+
+  /* ---------- Submit: native form POST (most reliable on all phones) ---------- */
+  form.addEventListener('submit', e => {
     e.preventDefault();
     e.stopPropagation();
 
+    // Same-page relative action — never cross-scheme / CORS on mobile
+    form.setAttribute('action', window.location.pathname + window.location.search);
+
     for (const step of path()) {
-      if (step !== current) {
-        steps[step - 1].classList.remove('d-none');
-        const ok = validateStep(step, { preferAlert: true });
-        if (!ok) {
-          show(step);
-          return;
-        }
-        steps[step - 1].classList.add('d-none');
-      }
+      if (!validateStepHidden(step, { preferAlert: true })) return;
     }
-    if (!validateStep(current, { preferAlert: true })) return;
 
     const resume = $('#crResume');
     const intern = isIntern();
@@ -470,7 +475,7 @@
       return;
     }
     if (resume.files && resume.files[0] && resume.files[0].size > MAX) {
-      alertErr('Resume must be under 5MB.');
+      alertErr('Resume must be under 5MB. Please use a smaller PDF.');
       return;
     }
     if (!$('input[name="declaration"]').checked) {
@@ -481,25 +486,26 @@
     const btn = $('#crSubmit');
     if (btn.disabled) return;
     btn.disabled = true;
-    const setBtn = (label) => {
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + label;
-    };
-    setBtn(intern ? 'Submitting…' : 'Uploading…');
-    try {
-      const fd = prepareInternPayload(new FormData(form));
-      const data = await postApplication(fd, pct => {
-        setBtn(pct < 100 ? ('Uploading… ' + pct + '%') : 'Saving…');
-      });
-      if (data.ok && data.redirect) {
-        window.location.href = data.redirect;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting…';
+
+    syncInternIntoForm();
+
+    // Re-enable fields that must POST (disabled controls are omitted from native submit)
+    $$('#crEduList input, #crSkills, #crExpCtc').forEach(f => {
+      if (!f) return;
+      if (intern && (f.closest('#crExpBlock') || f.id === 'crSkills')) {
+        // keep skills enabled with tech value; leave exp disabled
+        if (f.id === 'crSkills') f.disabled = false;
         return;
       }
-      alertErr((data && data.message) || 'Could not submit application.');
-    } catch (err) {
-      alertErr((err && err.message) || 'Network error. Please check your connection and try again.');
+      if (!intern) f.disabled = false;
+    });
+    if (intern) {
+      $$('#crStepExp input, #crStepExp textarea, #crStepExp select').forEach(f => { f.disabled = true; });
     }
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Submit Application';
+
+    // Native navigation POST — no XHR / no "Network error" popup on phones
+    HTMLFormElement.prototype.submit.call(form);
   });
 
   function alertErr(msg) {

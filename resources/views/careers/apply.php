@@ -29,6 +29,12 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
 
 <main class="cr-wrap">
 
+  <?php if (!empty($flash['message'])): ?>
+    <div class="cr-card" style="border-color:#fecaca;background:#fef2f2;color:#991b1b;font-weight:700;">
+      <i class="fa-solid fa-circle-exclamation me-1"></i><?= e($flash['message']) ?>
+    </div>
+  <?php endif; ?>
+
   <!-- Intro -->
   <section class="cr-card cr-intro" id="crIntro">
     <div class="cr-logo"><img src="<?= asset($app['brand']['logo']) ?>" alt=""></div>
@@ -47,7 +53,7 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
   </section>
 
   <!-- Wizard -->
-  <form id="crForm" class="d-none" method="post" action="<?= url('apply') ?>" enctype="multipart/form-data" novalidate>
+  <form id="crForm" class="d-none" method="post" action="" enctype="multipart/form-data" novalidate>
     <?= csrf_field() ?>
     <!-- Honeypot: readonly blocks mobile autofill; bots that type still get caught server-side -->
     <input type="text" name="website" class="cr-hp" tabindex="-1" autocomplete="off" aria-hidden="true" readonly>

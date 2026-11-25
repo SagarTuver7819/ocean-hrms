@@ -62,7 +62,11 @@ class View
         $base = rtrim($app['url'], '/');
         $host = $_SERVER['HTTP_HOST'] ?? '';
         if ($host && preg_match('/^[A-Za-z0-9.\-]+(:\d+)?$/', $host)) {
-            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $fwd = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+            $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || $fwd === 'https'
+                || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443);
+            $scheme = $https ? 'https' : 'http';
             $base = preg_replace('#^https?://[^/]+#', $scheme . '://' . $host, $base);
         }
         return $base;

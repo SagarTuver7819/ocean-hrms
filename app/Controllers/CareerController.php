@@ -44,10 +44,10 @@ class CareerController extends Controller
     public function submit(): void
     {
         if (!CSRF::validate($this->input('_csrf'))) {
-            $this->json(['ok' => false, 'message' => 'Session expired. Please refresh the page and try again.'], 419);
+            $this->respondApplyError('Session expired. Please refresh the page and try again.', 419);
         }
         if (trim((string) $this->input('website', '')) !== '') {
-            $this->json(['ok' => false, 'message' => 'Unable to submit application. Please refresh the page and try again.'], 422);
+            $this->respondApplyError('Unable to submit application. Please refresh the page and try again.', 422);
         }
 
         $s = fn(string $k, int $max = 255) => mb_substr(trim((string) ($_POST[$k] ?? '')), 0, $max);
@@ -111,7 +111,7 @@ class CareerController extends Controller
             }
         }
         if ($errors) {
-            $this->json(['ok' => false, 'message' => implode(' ', $errors)], 422);
+            $this->respondApplyError(implode(' ', $errors), 422);
         }
 
         $db = $this->db();
@@ -221,16 +221,44 @@ class CareerController extends Controller
             $db->commit();
         } catch (RuntimeException $e) {
             $this->cleanup($db, $saved);
-            $this->json(['ok' => false, 'message' => $e->getMessage()], 422);
+            $this->respondApplyError($e->getMessage(), 422);
         } catch (Throwable $e) {
             $this->cleanup($db, $saved);
-            $this->json(['ok' => false, 'message' => APP_DEBUG ? $e->getMessage() : 'Something went wrong. Please try again.'], 500);
+            $this->respondApplyError(APP_DEBUG ? $e->getMessage() : 'Something went wrong. Please try again.', 500);
         }
 
         $token = $db->query('SELECT public_token FROM candidates WHERE id = ' . (int) $id)->fetchColumn();
         $this->notifyHr($db, (int) $id, $data['first_name'] . ' ' . $data['last_name']);
 
-        $this->json(['ok' => true, 'redirect' => url('apply/thank-you/' . $token)]);
+        $this->respondApplySuccess('apply/thank-you/' . $token);
+    }
+
+    /** JSON for AJAX phones/desktops; classic redirect for native form POST (most reliable on mobile). */
+    private function wantsJson(): bool
+    {
+        $xrw = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
+        if ($xrw === 'xmlhttprequest') {
+            return true;
+        }
+        $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+        return str_contains($accept, 'application/json') && !str_contains($accept, 'text/html');
+    }
+
+    private function respondApplySuccess(string $path): void
+    {
+        if ($this->wantsJson()) {
+            $this->json(['ok' => true, 'redirect' => url($path)]);
+        }
+        $this->redirect($path);
+    }
+
+    private function respondApplyError(string $message, int $code = 422): void
+    {
+        if ($this->wantsJson()) {
+            $this->json(['ok' => false, 'message' => $message], $code);
+        }
+        $this->flash('error', $message);
+        $this->redirect('apply');
     }
 
     public function thanks(string $token): void
