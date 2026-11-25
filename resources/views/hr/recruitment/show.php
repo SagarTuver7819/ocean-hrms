@@ -7,8 +7,9 @@ $inr = fn($x) => $x !== null && $x !== '' ? '₹' . inr($x) . ' / yr' : '—';
 $month = fn($m) => $m ? date('M Y', strtotime($m . '-01')) : '—';
 $types = ['full_time' => 'Full Time', 'intern' => 'Internship', 'contract' => 'Contract', 'part_time' => 'Part Time'];
 $age = $c['date_of_birth'] ? (new DateTime($c['date_of_birth']))->diff(new DateTime())->y . ' yrs' : null;
+$isIntern = ($c['employment_type'] ?? '') === 'intern';
 $canConvert = !$c['employee_id'] && $c['status'] === 'selected';
-$offerReady = $c['status'] === 'selected' && (float) $c['offered_salary'] > 0 && $c['joining_date'];
+$offerReady = $c['status'] === 'selected' && $c['joining_date'] && ($isIntern || (float) $c['offered_salary'] > 0);
 $suggestedSalary = (float) $c['offered_salary'] ?: ($c['expected_ctc'] ? round($c['expected_ctc'] / 12 / 500) * 500 : 0);
 $offerUrl = url('recruitment/' . $c['id'] . '/offer-letter');
 $kv = function (array $rows) {
@@ -175,19 +176,30 @@ $expLabel = Candidate::experienceLabel((int) $c['total_experience_months'], (boo
 
     <?php if ($offerReady): ?>
       <div class="ep-card cp tone-green">
-        <?= $head('fa-file-signature', 'Offer Details', 'Finalised on selection', '<button type="button" class="btn btn-sm btn-soft" data-bs-toggle="modal" data-bs-target="#selectModal"><i class="fa-solid fa-pen me-1"></i>Edit</button>') ?>
+        <?= $head('fa-file-signature', $isIntern ? 'Internship Offer' : 'Offer Details', $isIntern ? 'Start date confirmed' : 'Finalised on selection', '<button type="button" class="btn btn-sm btn-soft" data-bs-toggle="modal" data-bs-target="#selectModal"><i class="fa-solid fa-pen me-1"></i>Edit</button>') ?>
         <div class="cp-body">
-          <div class="salary-now">
-            <small>Final monthly salary</small>
-            <b><?= money($c['offered_salary']) ?></b>
-            <span><?= e(amount_in_words($c['offered_salary'])) ?></span>
-          </div>
-          <?= $kv([
-            ['Joining Date', format_date($c['joining_date']), '6'],
-            ['Probation', (int) $c['probation_months'] . ' month(s)', '6'],
-            ['Accept Offer By', $c['offer_valid_till'] ? format_date($c['offer_valid_till']) : '—', '6'],
-            ['Annual', money($c['offered_salary'] * 12), '6'],
-          ]) ?>
+          <?php if ($isIntern): ?>
+            <div class="salary-now">
+              <small>Internship start date</small>
+              <b><?= format_date($c['joining_date']) ?></b>
+              <span>Offer letter ready</span>
+            </div>
+            <?= $kv([
+              ['Accept Offer By', $c['offer_valid_till'] ? format_date($c['offer_valid_till']) : '—', '12'],
+            ]) ?>
+          <?php else: ?>
+            <div class="salary-now">
+              <small>Final monthly salary</small>
+              <b><?= money($c['offered_salary']) ?></b>
+              <span><?= e(amount_in_words($c['offered_salary'])) ?></span>
+            </div>
+            <?= $kv([
+              ['Joining Date', format_date($c['joining_date']), '6'],
+              ['Probation', (int) $c['probation_months'] . ' month(s)', '6'],
+              ['Accept Offer By', $c['offer_valid_till'] ? format_date($c['offer_valid_till']) : '—', '6'],
+              ['Annual', money($c['offered_salary'] * 12), '6'],
+            ]) ?>
+          <?php endif; ?>
           <a href="<?= $offerUrl ?>" target="_blank" class="btn btn-success w-100 mt-3"><i class="fa-solid fa-print me-1"></i>Open Offer Letter (A4)</a>
         </div>
       </div>
@@ -266,7 +278,11 @@ $expLabel = Candidate::experienceLabel((int) $c['total_experience_months'], (boo
     <form method="post" action="<?= url('recruitment/' . $c['id'] . '/select') ?>" class="modal-content js-loading">
       <?= csrf_field() ?>
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fa-solid fa-indian-rupee-sign me-2"></i>Finalise Salary &amp; Select</h5>
+        <?php if ($isIntern): ?>
+          <h5 class="modal-title"><i class="fa-solid fa-calendar-check me-2"></i>Internship Start Date &amp; Offer Letter</h5>
+        <?php else: ?>
+          <h5 class="modal-title"><i class="fa-solid fa-indian-rupee-sign me-2"></i>Finalise Salary &amp; Select</h5>
+        <?php endif; ?>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -276,45 +292,74 @@ $expLabel = Candidate::experienceLabel((int) $c['total_experience_months'], (boo
             <b><?= e($c['full_name']) ?></b>
             <small><?= e($c['position']) ?> · <?= e($c['application_no']) ?></small>
           </div>
-          <div class="ms-auto text-end">
-            <small>Expected</small>
-            <b><?= $inr($c['expected_ctc']) ?></b>
-          </div>
+          <?php if (!$isIntern): ?>
+            <div class="ms-auto text-end">
+              <small>Expected</small>
+              <b><?= $inr($c['expected_ctc']) ?></b>
+            </div>
+          <?php endif; ?>
         </div>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label required">Final Monthly Salary (₹)</label>
-            <input type="number" name="offered_salary" class="form-control form-control-lg js-salary-input" min="1" step="1" required value="<?= $suggestedSalary ? (int) $suggestedSalary : '' ?>" placeholder="e.g. 25000">
-            <div class="form-text js-salary-words"></div>
+
+        <?php if ($isIntern): ?>
+          <input type="hidden" name="offered_salary" value="0">
+          <input type="hidden" name="probation_months" value="0">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label required">Internship Start Date</label>
+              <input type="date" name="joining_date" class="form-control form-control-lg" required min="<?= date('Y-m-d') ?>" value="<?= e($c['joining_date'] ?: date('Y-m-d', strtotime('+7 days'))) ?>">
+              <div class="form-text">Offer letter will mention this start date.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Accept Offer By</label>
+              <input type="date" name="offer_valid_till" class="form-control form-control-lg" min="<?= date('Y-m-d') ?>" value="<?= e($c['offer_valid_till'] ?: date('Y-m-d', strtotime('+3 days'))) ?>">
+            </div>
+            <div class="col-12">
+              <label class="form-label">HR Remarks</label>
+              <textarea name="hr_remarks" id="selectRemarks" class="form-control" rows="2" placeholder="Selected for internship"><?= e($c['hr_remarks'] ?? '') ?></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-check">
+                <input type="checkbox" name="open_offer" value="1" class="form-check-input" checked>
+                <span class="form-check-label">Open the A4 internship offer letter after saving</span>
+              </label>
+            </div>
           </div>
-          <div class="col-md-6">
-            <label class="form-label required">Joining Date</label>
-            <input type="date" name="joining_date" class="form-control form-control-lg" required min="<?= date('Y-m-d') ?>" value="<?= e($c['joining_date'] ?: date('Y-m-d', strtotime('+7 days'))) ?>">
-            <div class="form-text">Offer letter will mention this joining date.</div>
+        <?php else: ?>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label required">Final Monthly Salary (₹)</label>
+              <input type="number" name="offered_salary" class="form-control form-control-lg js-salary-input" min="1" step="1" required value="<?= $suggestedSalary ? (int) $suggestedSalary : '' ?>" placeholder="e.g. 25000">
+              <div class="form-text js-salary-words"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label required">Joining Date</label>
+              <input type="date" name="joining_date" class="form-control form-control-lg" required min="<?= date('Y-m-d') ?>" value="<?= e($c['joining_date'] ?: date('Y-m-d', strtotime('+7 days'))) ?>">
+              <div class="form-text">Offer letter will mention this joining date.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Probation (months)</label>
+              <input type="number" name="probation_months" class="form-control" min="0" max="12" value="<?= (int) ($c['probation_months'] ?? 3) ?>">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Accept Offer By</label>
+              <input type="date" name="offer_valid_till" class="form-control" min="<?= date('Y-m-d') ?>" value="<?= e($c['offer_valid_till'] ?: date('Y-m-d', strtotime('+3 days'))) ?>">
+            </div>
+            <div class="col-12">
+              <label class="form-label">HR Remarks</label>
+              <textarea name="hr_remarks" id="selectRemarks" class="form-control" rows="2" placeholder="Interview summary"><?= e($c['hr_remarks'] ?? '') ?></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-check">
+                <input type="checkbox" name="open_offer" value="1" class="form-check-input" checked>
+                <span class="form-check-label">Open the A4 offer letter after saving</span>
+              </label>
+            </div>
           </div>
-          <div class="col-md-6">
-            <label class="form-label">Probation (months)</label>
-            <input type="number" name="probation_months" class="form-control" min="0" max="12" value="<?= (int) ($c['probation_months'] ?? 3) ?>">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Accept Offer By</label>
-            <input type="date" name="offer_valid_till" class="form-control" min="<?= date('Y-m-d') ?>" value="<?= e($c['offer_valid_till'] ?: date('Y-m-d', strtotime('+3 days'))) ?>">
-          </div>
-          <div class="col-12">
-            <label class="form-label">HR Remarks</label>
-            <textarea name="hr_remarks" id="selectRemarks" class="form-control" rows="2" placeholder="Interview summary"><?= e($c['hr_remarks'] ?? '') ?></textarea>
-          </div>
-          <div class="col-12">
-            <label class="form-check">
-              <input type="checkbox" name="open_offer" value="1" class="form-check-input" checked>
-              <span class="form-check-label">Open the A4 offer letter after saving</span>
-            </label>
-          </div>
-        </div>
+        <?php endif; ?>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-ink" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-brand"><i class="fa-solid fa-circle-check me-1"></i><?= $offerReady ? 'Update Offer' : 'Confirm Selection' ?></button>
+        <button type="submit" class="btn btn-brand"><i class="fa-solid fa-circle-check me-1"></i><?= $offerReady ? 'Update Offer' : ($isIntern ? 'Confirm &amp; Open Offer' : 'Confirm Selection') ?></button>
       </div>
     </form>
   </div>

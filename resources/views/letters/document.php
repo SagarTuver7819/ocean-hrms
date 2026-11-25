@@ -7,8 +7,9 @@ $fullName = trim($salute . ' ' . $p['name']);
 $firstName = trim($salute . ' ' . explode(' ', $p['name'])[0]);
 $d = fn(?string $date) => $date ? date('d-m-Y', strtotime($date)) : '—';
 $rupee = fn($n) => '₹ ' . inr($n);
+$isIntern = !empty($isIntern);
 $subjects = [
-    'offer'       => 'Offer of Employment',
+    'offer'       => $isIntern ? 'Internship Offer Letter' : 'Offer of Employment',
     'appointment' => 'Appointment Letter',
     'experience'  => 'Experience Certificate',
     'relieving'   => 'Relieving Letter',
@@ -92,7 +93,7 @@ $subjects = [
             <span><?= $type === 'offer' && !$employee ? 'Application No' : 'Emp. Code' ?>: <b style="display:inline"><?= e($p['code']) ?></b></span>
           </div>
           <div class="side">
-            <?php if (in_array($type, ['offer', 'appointment'], true)): ?>Date of Joining:<br><?= $d($joiningDate) ?><?php endif; ?>
+            <?php if (in_array($type, ['offer', 'appointment'], true)): ?><?= $isIntern && $type === 'offer' ? 'Internship Start Date' : 'Date of Joining' ?>:<br><?= $d($joiningDate) ?><?php endif; ?>
             <?php if ($type === 'relieving'): ?>Last Working Day:<br><?= $d($lastDay) ?><?php endif; ?>
           </div>
         </div>
@@ -117,8 +118,13 @@ $subjects = [
       <?php if ($type === 'offer'): ?>
         <div class="lt-accept">
           <h5>Acceptance</h5>
-          I, <b><?= e($p['name']) ?></b>, have read and understood the terms of this offer and accept the position of
-          <b><?= e($p['designation'] ?: '—') ?></b><?php $payAcc = (float) ($monthlySalary ?? 0); ?> at a fixed monthly salary of <b><?= $payAcc > 0 ? $rupee($payAcc) : 'as agreed' ?></b>. I will join on <b><?= $d($joiningDate) ?></b>.
+          <?php if ($isIntern): ?>
+            I, <b><?= e($p['name']) ?></b>, have read and understood the terms of this internship offer and accept the internship as
+            <b><?= e($p['designation'] ?: 'Intern') ?></b>. I will join on <b><?= $d($joiningDate) ?></b>.
+          <?php else: ?>
+            I, <b><?= e($p['name']) ?></b>, have read and understood the terms of this offer and accept the position of
+            <b><?= e($p['designation'] ?: '—') ?></b><?php $payAcc = (float) ($monthlySalary ?? 0); ?> at a fixed monthly salary of <b><?= $payAcc > 0 ? $rupee($payAcc) : 'as agreed' ?></b>. I will join on <b><?= $d($joiningDate) ?></b>.
+          <?php endif; ?>
           <div class="row"><div>Candidate Signature</div><div>Date</div><div>Place</div></div>
         </div>
       <?php endif; ?>

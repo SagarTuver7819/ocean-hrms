@@ -1,6 +1,49 @@
-<?php $pay = (float) ($monthlySalary ?? 0); $hasPay = $pay > 0; ?>
+<?php
+$pay = (float) ($monthlySalary ?? 0);
+$hasPay = $pay > 0;
+$isIntern = !empty($isIntern);
+?>
 <p>Dear <?= e($firstName) ?>,</p>
 
+<?php if ($isIntern): ?>
+<p>
+  With reference to your application and the subsequent discussions held with us, we are pleased to offer you an
+  <b>Internship</b> as <b><?= e($p['designation'] ?: 'Intern') ?></b><?= $p['department'] ? ' in our <b>' . e($p['department']) . '</b> team' : '' ?> at
+  <b><?= e($company) ?></b>. We look forward to having you learn and contribute with our team.
+</p>
+
+<div class="lt-hl">
+  <table>
+    <tr><td>Role</td><td><?= e($p['designation'] ?: 'Intern') ?></td></tr>
+    <?php if ($p['department']): ?><tr><td>Department</td><td><?= e($p['department']) ?></td></tr><?php endif; ?>
+    <tr><td>Internship Start Date</td><td><?= $d($joiningDate) ?></td></tr>
+    <tr><td>Working Hours</td><td><?= e($shift ?? '09:30 AM to 06:30 PM') ?> · <?= e($letter['weekOff']) ?> off</td></tr>
+    <tr><td>Place of Work</td><td><?= e($company) ?>, <?= e($letter['jurisdiction']) ?></td></tr>
+  </table>
+</div>
+
+<h4><span>1.</span>Internship Terms</h4>
+<p>
+  This is an internship engagement for learning and practical exposure. Any stipend, if applicable, will be communicated separately in writing.
+  The internship does not create a permanent employment relationship unless confirmed later in writing by the company.
+</p>
+
+<h4><span>2.</span>Documents Required on Joining</h4>
+<ul>
+  <li>Copies of educational certificates / college ID (as applicable)</li>
+  <li>Aadhaar card, PAN card and 2 passport-size photographs</li>
+  <li>Bank account details (cancelled cheque or passbook copy), if stipend is applicable</li>
+</ul>
+
+<h4><span>3.</span>Validity</h4>
+<p>
+  This offer is valid till <b><?= $d($validTill) ?></b>. Please sign and return a copy of this letter as a token of your acceptance.
+  This offer is subject to verification of your documents and the information provided by you.
+</p>
+
+<p>We look forward to welcoming you to <?= e($company) ?> and wish you a rewarding internship with us.</p>
+
+<?php else: ?>
 <p>
   With reference to your application and the subsequent interviews held with us, we are pleased to offer you the position of
   <b><?= e($p['designation'] ?: '—') ?></b><?= $p['department'] ? ' in our <b>' . e($p['department']) . '</b> team' : '' ?> at
@@ -54,3 +97,4 @@
 </p>
 
 <p>We look forward to welcoming you to <?= e($company) ?> and wish you a rewarding career with us.</p>
+<?php endif; ?>

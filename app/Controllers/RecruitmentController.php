@@ -154,7 +154,10 @@ class RecruitmentController extends Controller
             $this->redirect('recruitment/' . $id);
         }
         if ($status === 'selected') {
-            $this->flash('info', 'Finalise the salary and joining date to select this candidate.');
+            $isIntern = ($c['employment_type'] ?? '') === 'intern';
+            $this->flash('info', $isIntern
+                ? 'Set the internship start date to select this candidate.'
+                : 'Finalise the salary and joining date to select this candidate.');
             $this->redirect('recruitment/' . $id . '?select=1');
         }
         (new Candidate())->update((int) $id, [
@@ -167,20 +170,29 @@ class RecruitmentController extends Controller
         $this->redirect($this->input('back') === 'interviews' ? 'recruitment/interviews' : 'recruitment/' . $id);
     }
 
-    /** Marks the candidate Selected with the finalised salary and joining details, then opens the offer letter. */
+    /** Marks the candidate Selected with joining/salary details, then opens the offer letter. */
     public function select(string $id): void
     {
         $back = 'recruitment/' . $id . '?select=1';
         $this->guardPost($back);
         $c = $this->candidateOr404($id);
+        $isIntern = ($c['employment_type'] ?? '') === 'intern';
 
         $date = fn(string $key) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $v = (string) $this->input($key, '')) && strtotime($v) ? $v : null;
         $salary = round((float) $this->input('offered_salary', 0), 2);
         $joining = $date('joining_date');
         $validTill = $date('offer_valid_till');
-        if ($salary <= 0 || !$joining) {
+
+        if (!$joining) {
+            $this->flash('error', $isIntern ? 'Internship start date is required.' : 'Joining date is required.');
+            $this->redirect($back);
+        }
+        if (!$isIntern && $salary <= 0) {
             $this->flash('error', 'Final monthly salary and joining date are required.');
             $this->redirect($back);
+        }
+        if ($isIntern) {
+            $salary = max(0, $salary);
         }
         if ($validTill && $validTill > $joining) {
             $validTill = $joining;
@@ -190,7 +202,7 @@ class RecruitmentController extends Controller
             'status'           => 'selected',
             'offered_salary'   => $salary,
             'joining_date'     => $joining,
-            'probation_months' => max(0, min(12, (int) $this->input('probation_months', 3))),
+            'probation_months' => $isIntern ? 0 : max(0, min(12, (int) $this->input('probation_months', 3))),
             'offer_valid_till' => $validTill ?? date('Y-m-d', min(strtotime('+3 days'), strtotime($joining))),
             'hr_remarks'       => trim((string) $this->input('hr_remarks', '')) ?: null,
             'selected_at'      => $c['selected_at'] ?: date('Y-m-d H:i:s'),
@@ -198,7 +210,11 @@ class RecruitmentController extends Controller
         ]);
         activity_log('recruitment', 'selected', (int) $id, ['status' => $c['status']], ['status' => 'selected', 'salary' => $salary, 'joining' => $joining]);
 
-        $this->flash('success', 'Candidate selected · salary ' . money($salary) . ' / month · joining ' . format_date($joining) . '.');
+        if ($isIntern) {
+            $this->flash('success', 'Intern selected · start date ' . format_date($joining) . '.');
+        } else {
+            $this->flash('success', 'Candidate selected · salary ' . money($salary) . ' / month · joining ' . format_date($joining) . '.');
+        }
         $this->redirect($this->input('open_offer') ? 'recruitment/' . $id . '/offer-letter' : 'recruitment/' . $id);
     }
 

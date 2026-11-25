@@ -86,8 +86,11 @@ class LetterController extends Controller
             $this->flash('error', 'Offer letters can be generated only for selected candidates.');
             $this->redirect('recruitment/' . (int) $id);
         }
-        if ((float) $c['offered_salary'] <= 0 || !$c['joining_date']) {
-            $this->flash('info', 'Finalise the salary and joining date first.');
+        $isIntern = ($c['employment_type'] ?? '') === 'intern';
+        if (!$c['joining_date'] || (!$isIntern && (float) $c['offered_salary'] <= 0)) {
+            $this->flash('info', $isIntern
+                ? 'Set the internship start date first.'
+                : 'Finalise the salary and joining date first.');
             $this->redirect('recruitment/' . (int) $id . '?select=1');
         }
 
@@ -96,7 +99,8 @@ class LetterController extends Controller
             'monthly_salary' => (float) $c['offered_salary'],
             'joining_date'   => $c['joining_date'],
             'valid_till'     => $c['offer_valid_till'] ?: date('Y-m-d', strtotime('+3 days')),
-            'probation'      => (int) ($c['probation_months'] ?? 3),
+            'probation'      => $isIntern ? 0 : (int) ($c['probation_months'] ?? 3),
+            'is_intern'      => $isIntern,
         ];
         $letterDate = $this->dateParam('date') ?? ($previous['letter_date'] ?? date('Y-m-d'));
         $ref = $this->reference('offer', null, (int) $id, $letterDate, $meta);
@@ -111,14 +115,15 @@ class LetterController extends Controller
                 'mobile'      => $c['mobile'],
                 'address'     => implode(', ', array_filter([$c['address'], $c['city'], $c['state'], $c['pincode']])),
             ],
-            'employee'    => null,
+            'employee'      => null,
             'monthlySalary' => $meta['monthly_salary'],
-            'joiningDate' => $meta['joining_date'],
-            'probation'   => $meta['probation'],
-            'validTill'   => $meta['valid_till'],
-            'lastDay'     => null,
-            'ref'         => $ref,
-            'backUrl'     => url('recruitment/' . (int) $id),
+            'joiningDate'   => $meta['joining_date'],
+            'probation'     => $meta['probation'],
+            'validTill'     => $meta['valid_till'],
+            'isIntern'      => $isIntern,
+            'lastDay'       => null,
+            'ref'           => $ref,
+            'backUrl'       => url('recruitment/' . (int) $id),
         ]);
     }
 
