@@ -405,7 +405,12 @@ class EmployeeController extends Controller
             'designations' => $db->query('SELECT id, name FROM designations WHERE status = 1 ORDER BY name')->fetchAll(),
             'teams' => $db->query('SELECT id, name FROM teams WHERE status = 1 ORDER BY name')->fetchAll(),
             'branches' => $db->query('SELECT id, name FROM branches WHERE status = 1 ORDER BY name')->fetchAll(),
-            'shifts' => $db->query('SELECT id, name FROM shifts WHERE status = 1 ORDER BY name')->fetchAll(),
+            'shifts' => (function () use ($db) {
+                \App\Services\Attendance::ensureInternShifts();
+                return $db->query(
+                    'SELECT id, name, code, full_day_minutes, skip_late FROM shifts WHERE status = 1 ORDER BY name'
+                )->fetchAll();
+            })(),
             'managers' => $this->reportingOptions($extra['employee']['id'] ?? null),
         ]);
     }

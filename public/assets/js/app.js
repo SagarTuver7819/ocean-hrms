@@ -262,6 +262,26 @@ $(function () {
   $(document).on('change', '#empStatus', syncExitDate);
   syncExitDate();
 
+  /* Internship Edit: Shift Assign = 2 Hours / 4 Hours only */
+  function syncInternShift() {
+    const isIntern = ($('#empType').val() || '') === 'intern';
+    const $gWrap = $('#shiftGeneralWrap');
+    const $iWrap = $('#shiftInternWrap');
+    const $g = $('#shiftGeneral');
+    const $i = $('#shiftIntern');
+    if (!$iWrap.length) return;
+    $gWrap.toggle(!isIntern);
+    $iWrap.toggle(isIntern);
+    $g.prop('disabled', isIntern);
+    $i.prop('disabled', !isIntern);
+    if (isIntern && !$i.val() && $i.find('option').length) {
+      const four = $i.find('option').filter(function () { return /4\s*Hours/i.test($(this).text()); }).first();
+      $i.val(four.length ? four.val() : $i.find('option').first().val());
+    }
+  }
+  $(document).on('change', '#empType', syncInternShift);
+  syncInternShift();
+
   /* Rupee amount in words (Indian system) under .js-salary-input */
   function rupeeWords(n) {
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve',

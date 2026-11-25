@@ -282,8 +282,9 @@ class DbSync
 
         // General: flex 9–10, grace to 10:15, work 8h20, max break 1h, total span 9h20 → 18:20
         $genId = $upsertShift('GEN', 'General Shift', '09:00:00', '18:20:00', 60, 15, 60, 500, 250, '0', '', 0);
-        // Internship: flexible (morning/evening OK), no late, full day = 4h, punch-out never Absent if worked
-        $intId = $upsertShift('INT', 'Internship Shift', '09:00:00', '18:20:00', 540, 0, 30, 240, 1, '0', '', 1);
+        // Internship: flexible 2h / 4h assign (morning/evening OK, no late)
+        $int2Id = $upsertShift('INT2', 'Internship 2 Hours', '09:00:00', '18:20:00', 540, 0, 30, 120, 60, '0', '', 1);
+        $intId = $upsertShift('INT', 'Internship 4 Hours', '09:00:00', '18:20:00', 540, 0, 30, 240, 120, '0', '', 1);
         // BDM: Sunday off + Saturday 2nd half off
         $bdmId = $upsertShift('BDM', 'BDM Shift', '09:00:00', '18:20:00', 60, 15, 60, 500, 250, '0', '6', 0);
 
@@ -297,12 +298,18 @@ class DbSync
         $st->execute([$bdmId]);
         $log[] = 'ok · assigned BDM shift to BDM designation (' . $st->rowCount() . ')';
 
+        // Interns: only fill missing / non-intern shifts — keep chosen 2h or 4h
         $st = $db->prepare(
-            "UPDATE employees SET shift_id = ?
-             WHERE employment_type = 'intern' AND status NOT IN ('inactive','resigned')"
+            "UPDATE employees e
+             LEFT JOIN shifts s ON s.id = e.shift_id
+             SET e.shift_id = ?
+             WHERE e.employment_type = 'intern'
+               AND e.status NOT IN ('inactive','resigned')
+               AND (e.shift_id IS NULL OR IFNULL(s.code, '') NOT IN ('INT','INT2','INT4'))"
         );
         $st->execute([$intId]);
-        $log[] = 'ok · assigned Internship shift to interns (' . $st->rowCount() . ')';
+        $log[] = 'ok · default Internship 4 Hours for interns without 2h/4h (' . $st->rowCount() . ')';
+        $log[] = 'ok · Internship 2 Hours shift ready (id ' . $int2Id . ')';
 
         $st = $db->prepare(
             "UPDATE employees e
@@ -310,9 +317,10 @@ class DbSync
              SET e.shift_id = ?
              WHERE e.employment_type <> 'intern'
                AND COALESCE(d.name, '') <> 'BDM'
-               AND e.status NOT IN ('inactive','resigned')"
+               AND e.status NOT IN ('inactive','resigned')
+               AND (e.shift_id IS NULL OR e.shift_id NOT IN (?, ?))"
         );
-        $st->execute([$genId]);
+        $st->execute([$genId, $intId, $int2Id]);
         $log[] = 'ok · assigned General shift to other employees (' . $st->rowCount() . ')';
 
         if ($hasColumn('employee_salaries', 'professional_tax')) {

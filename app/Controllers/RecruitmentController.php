@@ -278,6 +278,7 @@ class RecruitmentController extends Controller
         $employees = new Employee();
         try {
             $db->beginTransaction();
+            $isInternHire = ($c['employment_type'] ?? '') === 'intern';
             $empId = $employees->create([
                 'employee_code'   => $employees->nextCode(),
                 'first_name'      => $c['first_name'],
@@ -296,8 +297,9 @@ class RecruitmentController extends Controller
                 'employment_type' => $c['employment_type'],
                 'department_id'   => $c['department_id'],
                 'designation_id'  => $c['designation_id'],
+                'shift_id'        => $isInternHire ? \App\Services\Attendance::defaultInternShiftId() : null,
                 'status'          => 'onboarding',
-                'probation_period_days' => $c['probation_months'] !== null ? (int) $c['probation_months'] * 30 : 90,
+                'probation_period_days' => $isInternHire ? 0 : ($c['probation_months'] !== null ? (int) $c['probation_months'] * 30 : 90),
                 'pan_number'      => $c['pan_number'],
                 'aadhaar_number'  => $c['aadhaar_number'],
                 'created_at'      => date('Y-m-d H:i:s'),

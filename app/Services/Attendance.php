@@ -23,22 +23,85 @@ class Attendance
         'week_offs' => '0', 'half_week_offs' => '',
     ];
 
-    /** Internship full-day target (minutes). */
+    /** Internship full-day target (minutes) — default 4h when shift row missing. */
     public const INTERN_FULL_DAY_MINUTES = 240;
 
     public const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+    /** Internship shift codes: 2 Hours / 4 Hours (flexible assign). */
+    public const INTERN_SHIFT_CODES = ['INT2', 'INT', 'INT4'];
+
     public static function shiftFor(int $employeeId): array
     {
-        return Database::first('SELECT s.* FROM employees e JOIN shifts s ON s.id = e.shift_id WHERE e.id = ?', [$employeeId])
-            ?? Database::first('SELECT * FROM shifts WHERE status = 1 ORDER BY id LIMIT 1')
-            ?? self::DEFAULT_SHIFT;
+        $emp = Database::first('SELECT shift_id, employment_type FROM employees WHERE id = ?', [$employeeId]);
+        if (!$emp) {
+            return Database::first('SELECT * FROM shifts WHERE status = 1 ORDER BY id LIMIT 1') ?? self::DEFAULT_SHIFT;
+        }
+        if (!empty($emp['shift_id'])) {
+            $shift = Database::first('SELECT * FROM shifts WHERE id = ?', [(int) $emp['shift_id']]);
+            if ($shift) {
+                return $shift;
+            }
+        }
+        if (($emp['employment_type'] ?? '') === 'intern') {
+            self::ensureInternShifts();
+            return Database::first("SELECT * FROM shifts WHERE code IN ('INT4','INT') AND status = 1 ORDER BY FIELD(code,'INT4','INT') LIMIT 1")
+                ?? Database::first("SELECT * FROM shifts WHERE code = 'INT2' AND status = 1 LIMIT 1")
+                ?? self::DEFAULT_SHIFT;
+        }
+        return Database::first('SELECT * FROM shifts WHERE status = 1 ORDER BY id LIMIT 1') ?? self::DEFAULT_SHIFT;
     }
 
     public static function isIntern(int $employeeId): bool
     {
         $type = (string) Database::value('SELECT employment_type FROM employees WHERE id = ?', [$employeeId]);
         return $type === 'intern';
+    }
+
+    /**
+     * Ensures Internship 2 Hours + 4 Hours shifts exist.
+     * @return array{2:int,4:int} hour => shift id
+     */
+    public static function ensureInternShifts(): array
+    {
+        $upsert = static function (string $code, string $name, int $fullMin): int {
+            $id = (int) Database::value('SELECT id FROM shifts WHERE code = ? LIMIT 1', [$code]);
+            $half = max(1, intdiv($fullMin, 2));
+            if ($id > 0) {
+                Database::run(
+                    'UPDATE shifts SET name=?, start_time=?, end_time=?, flexible_minutes=?, late_after_minutes=?,
+                     skip_late=1, break_minutes=?, full_day_minutes=?, half_day_minutes=?, week_offs=?, half_week_offs=?, status=1
+                     WHERE id=?',
+                    [$name, '09:00:00', '18:20:00', 540, 0, 30, $fullMin, $half, '0', '', $id]
+                );
+                return $id;
+            }
+            Database::run(
+                'INSERT INTO shifts (name, code, start_time, end_time, flexible_minutes, late_after_minutes, skip_late,
+                 break_minutes, half_day_minutes, full_day_minutes, week_offs, half_week_offs, status, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 1, NOW())',
+                [$name, $code, '09:00:00', '18:20:00', 540, 0, 30, $half, $fullMin, '0', '']
+            );
+            return (int) Database::value('SELECT id FROM shifts WHERE code = ? LIMIT 1', [$code]);
+        };
+
+        // Legacy INT → treat as 4 Hours; keep code INT for older rows, plus INT4 alias name clarity via INT update
+        $int4 = $upsert('INT', 'Internship 4 Hours', 240);
+        $int2 = $upsert('INT2', 'Internship 2 Hours', 120);
+
+        return [2 => $int2, 4 => $int4];
+    }
+
+    /** Default internship shift id (4 Hours). */
+    public static function defaultInternShiftId(): int
+    {
+        $map = self::ensureInternShifts();
+        return (int) ($map[4] ?? 0);
+    }
+
+    public static function isInternShiftCode(?string $code): bool
+    {
+        return in_array((string) $code, self::INTERN_SHIFT_CODES, true);
     }
 
     /** Weekday numbers (0 = Sunday) the shift treats as full weekly off. */

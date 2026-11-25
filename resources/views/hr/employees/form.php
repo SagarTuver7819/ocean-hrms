@@ -133,7 +133,7 @@ $tabs = [
           <div class="ef-block">
             <div class="ef-block-title"><i class="fa-solid fa-sitemap"></i> Role &amp; reporting</div>
             <div class="row g-3">
-              <?= $select('Employment Type', 'employment_type', $titled(['full_time', 'part_time', 'intern', 'freelancer', 'contract', 'consultant']), $e['employment_type'] ?? 'full_time', ['placeholder' => false]) ?>
+              <?= $select('Employment Type', 'employment_type', $titled(['full_time', 'part_time', 'intern', 'freelancer', 'contract', 'consultant']), $e['employment_type'] ?? 'full_time', ['placeholder' => false, 'id' => 'empType']) ?>
               <?= $select('Department', 'department_id', $pairs($departments), $e['department_id'] ?? '', ['search' => true]) ?>
               <?= $select('Designation', 'designation_id', $pairs($designations), $e['designation_id'] ?? '', ['search' => true]) ?>
               <?php
@@ -148,11 +148,46 @@ $tabs = [
                 } elseif (!empty($e['reporting_manager_id'])) {
                     $reportCurrent = (string) $e['reporting_manager_id'];
                 }
+                $isInternEmp = ($e['employment_type'] ?? '') === 'intern';
+                $generalShiftOpts = [];
+                $internShiftOpts = [];
+                foreach ($shifts as $s) {
+                    $code = (string) ($s['code'] ?? '');
+                    $label = (string) $s['name'];
+                    if (in_array($code, ['INT2', 'INT', 'INT4'], true) || stripos($label, 'internship') !== false) {
+                        $hrs = ($code === 'INT2') ? 2 : max(1, (int) round(((int) ($s['full_day_minutes'] ?? 240)) / 60));
+                        $internShiftOpts[(string) $s['id']] = $hrs === 2 ? '2 Hours' : '4 Hours';
+                    } else {
+                        $generalShiftOpts[(string) $s['id']] = $label;
+                    }
+                }
+                uasort($internShiftOpts, static fn($a, $b) => ((int) $a) <=> ((int) $b));
               ?>
               <?= $select('Reporting Person', 'reporting_manager_id', $pairs($managers), $reportCurrent, ['search' => true]) ?>
               <?= $select('Team', 'team_id', $pairs($teams), $e['team_id'] ?? '') ?>
               <?= $select('Branch', 'branch_id', $pairs($branches), $e['branch_id'] ?? '') ?>
-              <?= $select('Shift', 'shift_id', $pairs($shifts), $e['shift_id'] ?? '') ?>
+              <div class="col-lg-3 col-md-6" id="shiftGeneralWrap"<?= $isInternEmp ? ' style="display:none"' : '' ?>>
+                <div class="ef-field">
+                  <label class="form-label">Shift</label>
+                  <select class="form-select" name="shift_id" id="shiftGeneral"<?= $isInternEmp ? ' disabled' : '' ?>>
+                    <option value="">Select</option>
+                    <?php foreach ($generalShiftOpts as $sid => $label): ?>
+                      <option value="<?= e($sid) ?>"<?= (string) ($e['shift_id'] ?? '') === (string) $sid ? ' selected' : '' ?>><?= e($label) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+              </div>
+              <div class="col-lg-3 col-md-6" id="shiftInternWrap"<?= $isInternEmp ? '' : ' style="display:none"' ?>>
+                <div class="ef-field">
+                  <label class="form-label">Shift Assign</label>
+                  <select class="form-select" name="shift_id" id="shiftIntern"<?= $isInternEmp ? '' : ' disabled' ?>>
+                    <?php foreach ($internShiftOpts as $sid => $label): ?>
+                      <option value="<?= e($sid) ?>"<?= (string) ($e['shift_id'] ?? '') === (string) $sid ? ' selected' : '' ?>><?= e($label) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                  <div class="ef-hint">Internship · flexible 2h or 4h · Punch In same as employees</div>
+                </div>
+              </div>
               <?= $field('Work Location', 'work_location', $e['work_location'] ?? '', 'text', ['placeholder' => 'e.g. Rajkot Office']) ?>
             </div>
           </div>
