@@ -224,8 +224,26 @@ function store_upload(?array $file, string $relativeDir, array $allowedMimes, st
     if ($file['size'] > $maxBytes) {
         throw new RuntimeException('File exceeds ' . round($maxBytes / 1048576) . 'MB limit.');
     }
-    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
-    if (!in_array($mime, $allowedMimes, true)) {
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']) ?: '';
+    // Some hosts/finfo return octet-stream for valid PDF/DOC — sniff magic + extension
+    $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+    if (in_array($mime, ['application/octet-stream', 'application/x-empty', 'text/plain', ''], true)) {
+        $head = (string) @file_get_contents($file['tmp_name'], false, null, 0, 8);
+        if (str_starts_with($head, '%PDF') || $ext === 'pdf') {
+            $mime = 'application/pdf';
+        } elseif ($ext === 'docx' || str_starts_with($head, 'PK')) {
+            $mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        } elseif ($ext === 'doc') {
+            $mime = 'application/msword';
+        } elseif (str_starts_with($head, "\xFF\xD8\xFF")) {
+            $mime = 'image/jpeg';
+        } elseif (str_starts_with($head, "\x89PNG")) {
+            $mime = 'image/png';
+        }
+    }
+    // octet-stream is never accepted directly — only remapped types above
+    $allowed = array_values(array_filter($allowedMimes, fn($m) => $m !== 'application/octet-stream'));
+    if (!in_array($mime, $allowed, true)) {
         throw new RuntimeException('Invalid file type: ' . $file['name']);
     }
     $extMap = [

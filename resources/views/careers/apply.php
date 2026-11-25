@@ -268,6 +268,6 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="<?= asset('assets/js/careers.js') ?>"></script>
+<script src="<?= asset('assets/js/careers.js') ?>?v=<?= @filemtime(BASE_PATH . '/public/assets/js/careers.js') ?>"></script>
 </body>
 </html>

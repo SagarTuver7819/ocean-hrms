@@ -275,7 +275,48 @@
     ).join('');
   }
 
-  /* ---------- Submit ---------- */
+  /* ---------- Submit (XHR — more reliable on slow mobile uploads) ---------- */
+  function postApplication(fd, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', form.action, true);
+      xhr.timeout = 180000; // 3 min for slow mobile data
+      xhr.withCredentials = true;
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      xhr.setRequestHeader('Accept', 'application/json');
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = ev => {
+          if (ev.lengthComputable) onProgress(Math.round((ev.loaded / ev.total) * 100));
+        };
+      }
+      xhr.onload = () => {
+        let data = null;
+        try { data = JSON.parse(xhr.responseText || '{}'); } catch (_) {}
+        if (xhr.status >= 200 && xhr.status < 300 && data) {
+          resolve(data);
+          return;
+        }
+        if (data && data.message) {
+          reject(new Error(data.message));
+          return;
+        }
+        if (xhr.status === 413) {
+          reject(new Error('Resume file is too large for the server. Please upload a PDF under 2MB.'));
+          return;
+        }
+        if (xhr.status === 0 || xhr.status >= 500) {
+          reject(new Error('Server could not finish the upload. Please try a smaller PDF or better network.'));
+          return;
+        }
+        reject(new Error('Could not submit application. Please refresh and try again.'));
+      };
+      xhr.onerror = () => reject(new Error('Network interrupted while uploading. Check mobile data / Wi‑Fi and try again.'));
+      xhr.ontimeout = () => reject(new Error('Upload timed out on slow network. Try a smaller PDF (under 2MB) or Wi‑Fi.'));
+      xhr.onabort = () => reject(new Error('Upload was cancelled. Please try again.'));
+      xhr.send(fd);
+    });
+  }
+
   form.addEventListener('submit', async e => {
     e.preventDefault();
     e.stopPropagation();
@@ -299,6 +340,10 @@
       resume.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    if (resume.files[0].size > MAX) {
+      alertErr('Resume must be under 5MB.');
+      return;
+    }
     if (!$('input[name="declaration"]').checked) {
       alertErr('Please accept the declaration before submitting.');
       return;
@@ -307,21 +352,21 @@
     const btn = $('#crSubmit');
     if (btn.disabled) return;
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting…';
+    const setBtn = (label) => {
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + label;
+    };
+    setBtn('Uploading…');
     try {
-      const res = await fetch(form.action, {
-        method: 'POST', body: new FormData(form),
-        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-        credentials: 'same-origin',
+      const data = await postApplication(new FormData(form), pct => {
+        setBtn(pct < 100 ? ('Uploading… ' + pct + '%') : 'Saving…');
       });
-      const data = await res.json().catch(() => ({ ok: false, message: 'Unexpected server response.' }));
-      if (data.ok) {
+      if (data.ok && data.redirect) {
         window.location.href = data.redirect;
         return;
       }
-      alertErr(data.message || 'Could not submit application.');
+      alertErr((data && data.message) || 'Could not submit application.');
     } catch (err) {
-      alertErr('Network error. Please check your connection and try again.');
+      alertErr((err && err.message) || 'Network error. Please check your connection and try again.');
     }
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Submit Application';

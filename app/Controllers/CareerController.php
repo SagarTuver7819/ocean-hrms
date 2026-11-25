@@ -16,6 +16,8 @@ class CareerController extends Controller
 {
     private const RESUME_MIMES = [
         'application/pdf',
+        'application/x-pdf',
+        'application/acrobat',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
