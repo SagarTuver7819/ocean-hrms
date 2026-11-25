@@ -306,8 +306,8 @@ $expLabel = Candidate::experienceLabel((int) $c['total_experience_months'], (boo
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label required">Internship Start Date</label>
-              <input type="date" name="joining_date" class="form-control form-control-lg" required min="<?= date('Y-m-d') ?>" value="<?= e($c['joining_date'] ?: date('Y-m-d', strtotime('+7 days'))) ?>">
-              <div class="form-text">Offer letter will mention this start date.</div>
+              <input type="date" name="joining_date" class="form-control form-control-lg" required value="<?= e($c['joining_date'] ?: date('Y-m-d')) ?>">
+              <div class="form-text">Past dates allowed. Offer letter will mention this start date.</div>
             </div>
             <div class="col-md-6">
               <label class="form-label">Accept Offer By</label>
