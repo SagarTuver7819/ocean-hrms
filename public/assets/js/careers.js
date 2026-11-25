@@ -31,14 +31,45 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function validateStep(n) {
+  function fieldLabel(f) {
+    const wrap = f.closest('.mb-2, .mb-3, [class*="col-"], .cr-check, .cr-upload, .cr-row') || f.parentElement;
+    const lab = wrap && wrap.querySelector('.form-label, .cr-upload-txt, span');
+    if (lab) return lab.childNodes[0] ? lab.childNodes[0].textContent.trim() : lab.textContent.trim();
+    return f.name || 'This field';
+  }
+
+  function isVisibleField(f) {
+    if (f.disabled || f.type === 'hidden') return false;
+    if (f.classList.contains('cr-hp')) return false;
+    // offsetParent is null for display:none ancestors; also skip zero-size non-file fields
+    if (f.offsetParent === null && f.type !== 'file' && f.type !== 'checkbox' && f.type !== 'radio') return false;
+    const style = window.getComputedStyle(f);
+    if (style.visibility === 'hidden' || style.display === 'none') return false;
+    // File / checkbox inside a hidden step or block
+    let el = f.parentElement;
+    while (el && el !== form) {
+      if (el.classList.contains('d-none')) return false;
+      el = el.parentElement;
+    }
+    return true;
+  }
+
+  function validateStep(n, { preferAlert = false } = {}) {
     const section = steps[n - 1];
-    const fields = $$('input, select, textarea', section).filter(f => !f.disabled && f.offsetParent !== null);
+    const fields = $$('input, select, textarea', section).filter(isVisibleField);
     for (const f of fields) {
       if (!f.checkValidity()) {
         section.classList.add('was-validated');
-        f.reportValidity();
-        f.focus();
+        const msg = f.validationMessage || ('Please fill: ' + fieldLabel(f));
+        // Native bubbles often fail on mobile for opacity:0 file inputs — use Swal
+        const useAlert = preferAlert || f.type === 'file' || f.type === 'checkbox';
+        if (useAlert) {
+          alertErr(msg);
+        } else {
+          try { f.reportValidity(); } catch (_) { alertErr(msg); }
+        }
+        try { f.focus({ preventScroll: false }); } catch (_) { f.focus(); }
+        f.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return false;
       }
     }
@@ -132,7 +163,14 @@
     const on = fresher.checked;
     $('#crExpBlock').classList.toggle('d-none', on);
     $('#crCurCtcWrap').classList.toggle('d-none', on);
-    $$('input, textarea', $('#crExpBlock')).forEach(f => { f.disabled = on; });
+    $$('input, textarea', $('#crExpBlock')).forEach(f => {
+      f.disabled = on;
+      // Drop required so hidden experience rows never block mobile submit
+      if (f.dataset.wasRequired === undefined) {
+        f.dataset.wasRequired = f.required ? '1' : '0';
+      }
+      f.required = on ? false : f.dataset.wasRequired === '1';
+    });
     if (!on) calcExperience();
   });
   addRow('tplExp', 'crExpList');
@@ -240,23 +278,41 @@
   /* ---------- Submit ---------- */
   form.addEventListener('submit', async e => {
     e.preventDefault();
+    e.stopPropagation();
+
     for (let i = 1; i <= total; i++) {
       if (i !== current) {
         steps[i - 1].classList.remove('d-none');
-        const ok = validateStep(i);
-        if (!ok) { show(i); validateStep(i); return; }
+        const ok = validateStep(i, { preferAlert: true });
+        if (!ok) {
+          show(i);
+          return;
+        }
         steps[i - 1].classList.add('d-none');
       }
     }
-    if (!validateStep(current)) return;
+    if (!validateStep(current, { preferAlert: true })) return;
+
+    const resume = $('#crResume');
+    if (!resume.files || !resume.files.length) {
+      alertErr('Please upload your resume (PDF / DOC / DOCX).');
+      resume.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!$('input[name="declaration"]').checked) {
+      alertErr('Please accept the declaration before submitting.');
+      return;
+    }
 
     const btn = $('#crSubmit');
+    if (btn.disabled) return;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting…';
     try {
       const res = await fetch(form.action, {
         method: 'POST', body: new FormData(form),
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        credentials: 'same-origin',
       });
       const data = await res.json().catch(() => ({ ok: false, message: 'Unexpected server response.' }));
       if (data.ok) {

@@ -45,7 +45,7 @@ class CareerController extends Controller
             $this->json(['ok' => false, 'message' => 'Session expired. Please refresh the page and try again.'], 419);
         }
         if (trim((string) $this->input('website', '')) !== '') {
-            $this->json(['ok' => false, 'message' => 'Unable to submit application.'], 422);
+            $this->json(['ok' => false, 'message' => 'Unable to submit application. Please refresh the page and try again.'], 422);
         }
 
         $s = fn(string $k, int $max = 255) => mb_substr(trim((string) ($_POST[$k] ?? '')), 0, $max);

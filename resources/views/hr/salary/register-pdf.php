@@ -31,7 +31,7 @@ $company = $company ?? 'Ocean Infotech';
       --info-soft: #f3f4f6;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; color: var(--ink); font-size: 10px; background: #f3f4f6; }
+    body { margin: 0; font-family: "Noto Serif", Georgia, "Times New Roman", serif; color: var(--ink); font-size: 11px; background: #f3f4f6; }
     .toolbar {
       position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center;
       gap: 12px; padding: 10px 16px; background: #211F23; color: #fff;

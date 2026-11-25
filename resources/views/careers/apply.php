@@ -15,7 +15,9 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
   <title>Careers · <?= e($company) ?></title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <link rel="stylesheet" href="<?= asset('assets/css/careers.css') ?>">
 </head>
@@ -47,7 +49,8 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
   <!-- Wizard -->
   <form id="crForm" class="d-none" method="post" action="<?= url('apply') ?>" enctype="multipart/form-data" novalidate>
     <?= csrf_field() ?>
-    <input type="text" name="website" class="cr-hp" tabindex="-1" autocomplete="off">
+    <!-- Honeypot: readonly blocks mobile autofill; bots that type still get caught server-side -->
+    <input type="text" name="website" class="cr-hp" tabindex="-1" autocomplete="off" aria-hidden="true" readonly>
 
     <div class="cr-progress">
       <div class="cr-progress-bar"><span id="crBar"></span></div>
@@ -186,9 +189,9 @@ $skillHints = ['PHP', 'Laravel', 'CodeIgniter', 'JavaScript', 'TypeScript', 'Rea
       <div class="row g-3">
         <div class="col-12"><label class="form-label">Other Skills / Tools</label><textarea class="form-control" name="secondary_skills" rows="2" maxlength="1000" placeholder="e.g. Git, Jira, Postman, Docker"></textarea></div>
         <div class="col-12"><label class="form-label">Certifications</label><input class="form-control" name="certifications" maxlength="1000" placeholder="e.g. AWS Cloud Practitioner"></div>
-        <div class="col-12 col-sm-4"><label class="form-label">GitHub</label><input class="form-control" type="url" name="github_url" maxlength="255" placeholder="https://github.com/…"></div>
-        <div class="col-12 col-sm-4"><label class="form-label">LinkedIn</label><input class="form-control" type="url" name="linkedin_url" maxlength="255" placeholder="https://linkedin.com/in/…"></div>
-        <div class="col-12 col-sm-4"><label class="form-label">Portfolio / Website</label><input class="form-control" type="url" name="portfolio_url" maxlength="255" placeholder="https://…"></div>
+        <div class="col-12 col-sm-4"><label class="form-label">GitHub</label><input class="form-control" type="text" inputmode="url" name="github_url" maxlength="255" placeholder="https://github.com/…" autocomplete="off"></div>
+        <div class="col-12 col-sm-4"><label class="form-label">LinkedIn</label><input class="form-control" type="text" inputmode="url" name="linkedin_url" maxlength="255" placeholder="https://linkedin.com/in/…" autocomplete="off"></div>
+        <div class="col-12 col-sm-4"><label class="form-label">Portfolio / Website</label><input class="form-control" type="text" inputmode="url" name="portfolio_url" maxlength="255" placeholder="https://…" autocomplete="off"></div>
         <div class="col-12"><label class="form-label">Best project you worked on</label><textarea class="form-control" name="best_project" rows="3" maxlength="2000" placeholder="Project name, your role, technologies used"></textarea></div>
         <div class="col-12"><label class="form-label">Why do you want to join <?= e($company) ?>?</label><textarea class="form-control" name="why_join" rows="2" maxlength="2000"></textarea></div>
       </div>

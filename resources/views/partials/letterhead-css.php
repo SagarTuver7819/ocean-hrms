@@ -1,12 +1,14 @@
 <?php $lh = $letterhead; ?>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet">
 <style>
   :root {
     --brand: #F5A01B; --ink: #211F23; --line: #d9d9de; --soft: #fff4e2;
     --top: <?= (int) $lh['top_mm'] ?>mm; --bottom: <?= (int) $lh['bottom_mm'] ?>mm; --side: <?= (int) $lh['side_mm'] ?>mm;
   }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { margin: 0; background: #e9e9ee; font: 11px/1.45 "Plus Jakarta Sans", Arial, sans-serif; color: var(--ink); }
+  body { margin: 0; background: #e9e9ee; font: 12px/1.45 "Noto Serif", Georgia, "Times New Roman", serif; color: var(--ink); }
 
   .toolbar { max-width: 210mm; margin: 14px auto; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
     background: #fff; padding: 10px 14px; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,.06); font-size: 13px; border-top: 3px solid var(--brand); }
